@@ -5,6 +5,7 @@ use std::process;
 use std::sync::mpsc::{self, TryRecvError};
 use std::thread;
 use std::time::Duration;
+
 use uuid::Uuid;
 
 const SERVER_PORT: &str = "6000";
@@ -12,11 +13,32 @@ const SERVER_IP_KEY: &str = "REMOTE_MIDI_SERVER";
 const MSG_SIZE: usize = 256;
 const MSG_SEPARATOR: char = '|';
 
-#[allow(unused)]
 fn main() {
-    println!("<><><><><><><><><><><><><><><><><><><><><><>");
+    let (error, server_address) = get_vars();
+    if error {process::exit(1)}
 
-    let mut server_address: String = format!("127.0.0.1:{}", SERVER_PORT);
+    let uuid = Uuid::new_v4();
+
+    print_welcome(uuid, &server_address);
+
+    let tx = check_stream(uuid, &server_address);
+
+    println!("Write a message or type \":q\" to exit:");
+
+    loop {
+        let mut buff = String::new();
+        io::stdin().read_line(&mut buff).expect("reading from stdin failed");
+        let msg = buff.trim().to_string();
+        let compound_msg = format!("{}{}{}", uuid, MSG_SEPARATOR, msg);
+        if msg == ":q" || tx.send(compound_msg).is_err() {break}
+    }
+
+    println!("\nExisiting...\n");
+}
+
+fn get_vars() -> (bool, String) {
+    let mut server_address = String::new();
+    let mut error = false;
     match env::var(SERVER_IP_KEY) {
         Ok(env_var) => server_address = format!("{}:{}", env_var, SERVER_PORT),
         Err(e) => {
@@ -24,15 +46,13 @@ fn main() {
             println!("Set the required variable like this:\n");
             println!("export {}=\"xxx.xxx.xxx.xxx\"\n", SERVER_IP_KEY);
             println!("Exiting...\n");
-            process::exit(1);
+            error = true;
         },
     }
+    (error, server_address)
+}
 
-    let uuid = Uuid::new_v4();
-    println!("UUID:\t{}", uuid);
-    println!("Server:\t{}", server_address);
-    println!("");
-
+fn check_stream(uuid: Uuid, server_address: &String) -> std::sync::mpsc::Sender<std::string::String> {
     let mut client = TcpStream::connect(server_address).expect("Stream failed to connect");
     client.set_nonblocking(true).expect("failed to initiate non-blocking");
 
@@ -64,7 +84,7 @@ fn main() {
                 let mut buff = msg.clone().into_bytes();
                 buff.resize(MSG_SIZE, 0);
                 client.write_all(&buff).expect("writing to socket failed");
-                print_msg("Tx", &msg);
+       print_msg("Tx", &msg);
             },
             Err(TryRecvError::Empty) => (),
             Err(TryRecvError::Disconnected) => break
@@ -73,17 +93,14 @@ fn main() {
         thread::sleep(Duration::from_millis(100));
     });
 
-    println!("Write a Message:");
+    tx
+}
 
-    loop {
-        let mut buff = String::new();
-        io::stdin().read_line(&mut buff).expect("reading from stdin failed");
-        let msg = buff.trim().to_string();
-        let compound_msg = format!("{}{}{}", uuid, MSG_SEPARATOR, msg);
-        if msg == ":quit" || tx.send(compound_msg).is_err() {break}
-    }
-
-    println!("bye bye!");
+fn print_welcome(uuid: Uuid, server_address: &String) {
+    println!("<><><><><><><><><><><><><><><><><><><><><><>");
+    println!("UUID:\t{}", uuid);
+    println!("Server:\t{}", server_address);
+    println!("");
 }
 
 fn print_msg(msg_type: &str, msg: &str) {
