@@ -1,3 +1,5 @@
+extern crate midir;
+
 use std::env;
 use std::io::{self, ErrorKind, Read, Write};
 use std::net::TcpStream;
@@ -8,8 +10,12 @@ use std::time::Duration;
 
 use uuid::Uuid;
 
+use midir::{MidiOutput};
+use midir::os::unix::{VirtualOutput};
+
 const SERVER_PORT: &str = "6000";
 const SERVER_IP_KEY: &str = "REMOTE_MIDI_SERVER";
+const MIDI_OUTPORT: &str = "REMOTE-MIDI";
 const MSG_SIZE: usize = 256;
 const MSG_SEPARATOR: char = '|';
 
@@ -21,9 +27,13 @@ fn main() {
 
     print_welcome(uuid, &server_address);
 
+    let midi_out = MidiOutput::new("RemoteMidiOutput").unwrap();
+    let mut conn_out = midi_out.create_virtual(MIDI_OUTPORT).unwrap();
+    play_sample_notes(&mut conn_out);
+
     let tx = check_stream(uuid, &server_address);
 
-    println!("Write a message or type \":q\" to exit:");
+    println!("\nWrite a message or type \":q\" to exit:");
 
     loop {
         let mut buff = String::new();
@@ -94,6 +104,34 @@ fn check_stream(uuid: Uuid, server_address: &String) -> std::sync::mpsc::Sender<
     });
 
     tx
+}
+
+fn play_sample_notes(conn_out: &mut midir::MidiOutputConnection) {
+    println!("Playing sample notes...\n");
+
+    let mut play_note = |note: u8, duration: u64| {
+        const NOTE_ON_MSG: u8 = 0x90;
+        const NOTE_OFF_MSG: u8 = 0x80;
+        const VELOCITY: u8 = 0x64;
+        println!("Playing note {:?}", note);
+        // We're ignoring errors in here
+        let _ = conn_out.send(&[NOTE_ON_MSG, note, VELOCITY]);
+        thread::sleep(Duration::from_millis(duration * 150));
+        let _ = conn_out.send(&[NOTE_OFF_MSG, note, VELOCITY]);
+    };
+
+    thread::sleep(Duration::from_millis(4 * 150));
+
+    for _ in 1..3 {
+        play_note(66, 4);
+        play_note(65, 3);
+        play_note(63, 1);
+        play_note(61, 6);
+        play_note(59, 2);
+        play_note(58, 4);
+        play_note(56, 4);
+        play_note(54, 4);
+    }
 }
 
 fn print_welcome(uuid: Uuid, server_address: &String) {

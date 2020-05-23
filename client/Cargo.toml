@@ -5,4 +5,5 @@ authors = ["tensor-programming <abeltensor@tensor-programming.com>"]
 edition = "2018"
 
 [dependencies]
+midir = "0.6.0"
 uuid = { version = "0.8", features = ["serde", "v4"] }
