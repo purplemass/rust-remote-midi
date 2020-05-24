@@ -106,32 +106,31 @@ fn check_stream(uuid: Uuid, server_address: &String) -> std::sync::mpsc::Sender<
     tx
 }
 
-fn play_sample_notes(conn_out: &mut midir::MidiOutputConnection) {
+fn play_note(conn_out: &mut midir::MidiOutputConnection, note: u8, duration: u64) {
+    const NOTE_ON_MSG: u8 = 0x90;
+    const NOTE_OFF_MSG: u8 = 0x80;
+    const VELOCITY: u8 = 0x64;
+    println!("Playing note {:?}", note);
+    // We're ignoring errors in here
+    let _ = conn_out.send(&[NOTE_ON_MSG, note, VELOCITY]);
+    thread::sleep(Duration::from_millis(duration * 150));
+    let _ = conn_out.send(&[NOTE_OFF_MSG, note, VELOCITY]);
+}
+
+fn play_sample_notes(mut conn_out: &mut midir::MidiOutputConnection) {
     println!("Playing sample notes...\n");
 
-    let mut play_note = |note: u8, duration: u64| {
-        const NOTE_ON_MSG: u8 = 0x90;
-        const NOTE_OFF_MSG: u8 = 0x80;
-        const VELOCITY: u8 = 0x64;
-        println!("Playing note {:?}", note);
-        // We're ignoring errors in here
-        let _ = conn_out.send(&[NOTE_ON_MSG, note, VELOCITY]);
-        thread::sleep(Duration::from_millis(duration * 150));
-        let _ = conn_out.send(&[NOTE_OFF_MSG, note, VELOCITY]);
-    };
-
-    thread::sleep(Duration::from_millis(4 * 150));
-
     for _ in 1..3 {
-        play_note(66, 4);
-        play_note(65, 3);
-        play_note(63, 1);
-        play_note(61, 6);
-        play_note(59, 2);
-        play_note(58, 4);
-        play_note(56, 4);
-        play_note(54, 4);
+        play_note(&mut conn_out, 66, 4);
+        play_note(&mut conn_out, 65, 3);
+        play_note(&mut conn_out, 63, 1);
+        play_note(&mut conn_out, 61, 6);
+        play_note(&mut conn_out, 59, 2);
+        play_note(&mut conn_out, 58, 4);
+        play_note(&mut conn_out, 56, 4);
+        play_note(&mut conn_out, 54, 4);
     }
+    thread::sleep(Duration::from_millis(4 * 150));
 }
 
 fn print_welcome(uuid: Uuid, server_address: &String) {
