@@ -4,3 +4,4 @@ version = "0.1.0"
 authors = ["tensor-programming <abeltensor@tensor-programming.com>"]
 
 [dependencies]
+chrono = "0.4.11"

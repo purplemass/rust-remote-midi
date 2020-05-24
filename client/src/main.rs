@@ -19,8 +19,8 @@ use midir::os::unix::{VirtualOutput};
 const SERVER_PORT: &str = "6000";
 const SERVER_IP_KEY: &str = "REMOTE_MIDI_SERVER";
 const MIDI_OUTPORT: &str = "REMOTE_MIDI";
-const MSG_SIZE: usize = 256;
 const MSG_SEPARATOR: char = '|';
+const MSG_SIZE: usize = 256;
 
 fn main() {
     let (error, server_address) = get_vars();
