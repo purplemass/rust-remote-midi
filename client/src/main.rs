@@ -1,3 +1,4 @@
+extern crate chrono;
 extern crate midir;
 extern crate rand;
 
@@ -10,6 +11,7 @@ use std::sync::mpsc::{self, TryRecvError};
 use std::thread;
 use std::time::Duration;
 
+use chrono::prelude::*;
 use rand::{thread_rng, Rng};
 use uuid::Uuid;
 
@@ -46,7 +48,7 @@ fn main() {
         if msg == ":q" || tx.send(compound_msg).is_err() {break}
     }
 
-    println!("\nExisiting...\n");
+    println!("\nExiting...\n");
 }
 
 fn get_vars() -> (bool, String) {
@@ -81,14 +83,14 @@ fn check_stream(uuid: Uuid, server_address: &String, conn_out: std::sync::Arc<st
                 let msg = String::from_utf8(msg).expect("Invalid utf8 message");
                 let msg_vec: Vec<&str> = msg.split(MSG_SEPARATOR).collect();
                 if msg_vec[0] != uuid.to_string() {
-                    print_msg("Rx", &msg);
                     let mut rng = thread_rng();
                     play_note(conn_out.clone(), rng.gen_range(50, 80), 1);
+                    print_log(&format!("< {}", get_msg(&msg)).to_string());
                 }
             },
             Err(ref err) if err.kind() == ErrorKind::WouldBlock => (),
             Err(_) => {
-                println!("connection with server was severed");
+                print_log("connection severed");
                 break;
             }
         }
@@ -99,7 +101,7 @@ fn check_stream(uuid: Uuid, server_address: &String, conn_out: std::sync::Arc<st
                 let mut buff = msg.clone().into_bytes();
                 buff.resize(MSG_SIZE, 0);
                 client.write_all(&buff).expect("writing to socket failed");
-                print_msg("Tx", &msg);
+                print_log(&format!("> {}", get_msg(&msg)).to_string());
             },
             Err(TryRecvError::Empty) => (),
             Err(TryRecvError::Disconnected) => break
@@ -115,12 +117,20 @@ fn play_note(conn_out: std::sync::Arc<std::sync::Mutex<midir::MidiOutputConnecti
     const NOTE_ON_MSG: u8 = 0x90;
     const NOTE_OFF_MSG: u8 = 0x80;
     const VELOCITY: u8 = 0x64;
-    println!("Playing note {:?}", note);
     // We're ignoring errors in here
     let mut conn_out_shared = conn_out.lock().unwrap();
     let _ = conn_out_shared.send(&[NOTE_ON_MSG, note, VELOCITY]);
     thread::sleep(Duration::from_millis(duration * 150));
     let _ = conn_out_shared.send(&[NOTE_OFF_MSG, note, VELOCITY]);
+    // print_log(&format!("play note {}", note).to_string());
+}
+
+fn get_time() -> chrono::DateTime<chrono::Utc> {
+    Utc::now()
+}
+
+fn print_log(msg: &str) {
+    println!("{} | {}", get_time(), msg);
 }
 
 fn print_welcome(uuid: Uuid, server_address: &String) {
@@ -131,7 +141,7 @@ fn print_welcome(uuid: Uuid, server_address: &String) {
     println!("{:♥<52}", "");
 }
 
-fn print_msg(msg_type: &str, msg: &str) {
+fn get_msg<'a>(msg: &'a str) -> &'a str {
     let msg_vec: Vec<&str> = msg.split(MSG_SEPARATOR).collect();
-    println!("{}: {}", msg_type, msg_vec[1]);
+    msg_vec[1]
 }
