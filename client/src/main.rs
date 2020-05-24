@@ -19,21 +19,21 @@ use midir::{MidiOutput};
 use midir::os::unix::{VirtualOutput};
 
 const SERVER_PORT: &str = "6000";
-const SERVER_IP_KEY: &str = "REMOTE_MIDI_SERVER";
-const MIDI_OUTPORT: &str = "REMOTE_MIDI";
+const MIDI_OUTPORT_ID: &str = "REMOTE_MIDI";
 const MSG_SEPARATOR: char = '|';
 const MSG_SIZE: usize = 256;
 
 fn main() {
-    let (error, server_address) = get_vars();
+    let (error, server_address, midi_port_number) = get_vars();
     if error {process::exit(1)}
 
     let uuid = Uuid::new_v4();
+    let midi_port = &format!("{}{}", MIDI_OUTPORT_ID, midi_port_number);
 
-    print_welcome(uuid, &server_address);
+    print_welcome(uuid, &server_address, &midi_port);
 
     let midi_out = MidiOutput::new("RemoteMidiOutput").unwrap();
-    let conn_out = midi_out.create_virtual(MIDI_OUTPORT).unwrap();
+    let conn_out = midi_out.create_virtual(midi_port).unwrap();
     let conn_out_shared = Arc::new(Mutex::new(conn_out));
 
     let tx = check_stream(uuid, &server_address, conn_out_shared);
@@ -51,20 +51,21 @@ fn main() {
     println!("\nExiting...\n");
 }
 
-fn get_vars() -> (bool, String) {
-    let mut server_address = String::new();
-    let mut error = false;
-    match env::var(SERVER_IP_KEY) {
-        Ok(env_var) => server_address = format!("{}:{}", env_var, SERVER_PORT),
-        Err(e) => {
-            println!("Error: {}\n", e);
-            println!("Set the required variable like this:\n");
-            println!("export {}=\"xxx.xxx.xxx.xxx\"\n", SERVER_IP_KEY);
-            println!("Exiting...\n");
-            error = true;
+fn get_vars() -> (bool, String, String) {
+    let args: Vec<String> = env::args().collect();
+    match args.len() {
+        3 => {
+            (false, format!("{}:{}", args[1], SERVER_PORT), args[2].to_string())
+        },
+        _ => {
+            println!("{:☠<52}", "");
+            println!("Error:\t\tIncorrect/missing arguments");
+            println!("Arguments:\t<SERVER_IP_ADDRESS> <MIDI_PORT_NUMBER>");
+            println!("Example:\t./client 127.0.0.1 2");
+            println!("{:☠<52}", "");
+            (true, String::new(), String::new())
         },
     }
-    (error, server_address)
 }
 
 fn check_stream(uuid: Uuid, server_address: &String, conn_out: std::sync::Arc<std::sync::Mutex<midir::MidiOutputConnection>>) -> std::sync::mpsc::Sender<std::string::String> {
@@ -133,11 +134,11 @@ fn print_log(msg: &str) {
     println!("{} | {}", get_time(), msg);
 }
 
-fn print_welcome(uuid: Uuid, server_address: &String) {
+fn print_welcome(uuid: Uuid, server_address: &String, midi_port: &String) {
     println!("{:♥<52}", "");
     println!("UUID:\t\t{}", uuid);
     println!("Server:\t\t{}", server_address);
-    println!("Midi port:\t{}", MIDI_OUTPORT);
+    println!("Midi port:\t{}", midi_port);
     println!("{:♥<52}", "");
 }
 

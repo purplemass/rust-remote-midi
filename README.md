@@ -6,13 +6,29 @@ Based on a client/server chat program written by [Tensor Flow](https://github.co
 
 ## Requirements
 
-The only requirement for this is to set an environment variable of the server for the client app like this (tested on macOS):
+You need to have [Rust](https://www.rust-lang.org/tools/install) to build or run the client or server applications:
 
-    export REMOTE_MIDI_SERVER="xxx.xxx.xxx.xxx"
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
-where `xxx.xxx.xxx.xxx` is the IP address of the server.
+On Ubuntu you may have to install `build-essential`:
 
-The port number is set in the source code as `6000`.
+    sudo apt install build-essential
+
+The only requirement are for the `client` applications which needs to be called with 2 arguments:
+
+    cargo run <SERVER_IP_ADDRESS> <MIDI_PORT_NUMBER>
+
+or if calling the executable:
+
+    ./client <SERVER_IP_ADDRESS> <MIDI_PORT_NUMBER>
+
+where `SERVER_IP_ADDRESS` is the IP address of the server (the port number is set in the source code to `6000`) and `MIDI_PORT_NUMBER` is an integer to append to the in-build Midi Port identifier set to `REMOTE_MIDI`.
+
+For example:
+
+    ./client 127.0.0.1 23
+
+will connect to a server running locally and open a virtual Midi port called `REMOTE_MIDI23`.
 
 ## Run
 
@@ -24,8 +40,8 @@ Run the server first:
 Then run the client:
 
     cd ../client
-    cargo run
+    cargo run 127.0.0.1 1
 
 ## Midi
 
-The application will create a virtual port called "REMOTE_MIDI".
+The application will create a virtual port called `REMOTE_MIDIx` where `x` is a number set in the argument when running the application.
