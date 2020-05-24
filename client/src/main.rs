@@ -87,8 +87,12 @@ fn check_stream(uuid: Uuid, server_address: &String, conn_out: std::sync::Arc<st
                     print_log(&format!("< {}", get_msg(&msg)).to_string());
                     let mut rng = thread_rng();
                     match msg_vec[1] {
-                        "1" => play_note(conn_out.clone(), 12, 1),
-                        "2" => play_note(conn_out.clone(), 15, 1),
+                        "a" => play_note(conn_out.clone(), 12, 1),
+                        "b" => play_note(conn_out.clone(), 15, 1),
+                        "1" => play_single_note(conn_out.clone(), 0x9E, 12, 127),
+                        "2" => play_single_note(conn_out.clone(), 0x8E, 12, 0),
+                        "3" => play_single_note(conn_out.clone(), 0x9E, 15, 127),
+                        "4" => play_single_note(conn_out.clone(), 0x8E, 15, 0),
                         _ => play_note(conn_out.clone(), rng.gen_range(50, 80), 1),
                     }
                 }
@@ -116,6 +120,11 @@ fn check_stream(uuid: Uuid, server_address: &String, conn_out: std::sync::Arc<st
     });
 
     tx
+}
+
+fn play_single_note(conn_out: std::sync::Arc<std::sync::Mutex<midir::MidiOutputConnection>>, note_msg: u8, note: u8, velocity: u8) {
+    let mut conn_out_shared = conn_out.lock().unwrap();
+    let _ = conn_out_shared.send(&[note_msg, note, velocity]);
 }
 
 fn play_note(conn_out: std::sync::Arc<std::sync::Mutex<midir::MidiOutputConnection>>, note: u8, duration: u64) {
