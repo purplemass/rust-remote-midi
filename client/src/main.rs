@@ -1,13 +1,16 @@
 extern crate midir;
+extern crate rand;
 
 use std::env;
 use std::io::{self, ErrorKind, Read, Write};
 use std::net::TcpStream;
 use std::process;
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{self, TryRecvError};
 use std::thread;
 use std::time::Duration;
 
+use rand::{thread_rng, Rng};
 use uuid::Uuid;
 
 use midir::{MidiOutput};
@@ -15,7 +18,7 @@ use midir::os::unix::{VirtualOutput};
 
 const SERVER_PORT: &str = "6000";
 const SERVER_IP_KEY: &str = "REMOTE_MIDI_SERVER";
-const MIDI_OUTPORT: &str = "REMOTE-MIDI";
+const MIDI_OUTPORT: &str = "REMOTE_MIDI";
 const MSG_SIZE: usize = 256;
 const MSG_SEPARATOR: char = '|';
 
@@ -28,10 +31,10 @@ fn main() {
     print_welcome(uuid, &server_address);
 
     let midi_out = MidiOutput::new("RemoteMidiOutput").unwrap();
-    let mut conn_out = midi_out.create_virtual(MIDI_OUTPORT).unwrap();
-    play_sample_notes(&mut conn_out);
+    let conn_out = midi_out.create_virtual(MIDI_OUTPORT).unwrap();
+    let conn_out_shared = Arc::new(Mutex::new(conn_out));
 
-    let tx = check_stream(uuid, &server_address);
+    let tx = check_stream(uuid, &server_address, conn_out_shared);
 
     println!("\nWrite a message or type \":q\" to exit:");
 
@@ -62,7 +65,7 @@ fn get_vars() -> (bool, String) {
     (error, server_address)
 }
 
-fn check_stream(uuid: Uuid, server_address: &String) -> std::sync::mpsc::Sender<std::string::String> {
+fn check_stream(uuid: Uuid, server_address: &String, conn_out: std::sync::Arc<std::sync::Mutex<midir::MidiOutputConnection>>) -> std::sync::mpsc::Sender<std::string::String> {
     let mut client = TcpStream::connect(server_address).expect("Stream failed to connect");
     client.set_nonblocking(true).expect("failed to initiate non-blocking");
 
@@ -79,6 +82,8 @@ fn check_stream(uuid: Uuid, server_address: &String) -> std::sync::mpsc::Sender<
                 let msg_vec: Vec<&str> = msg.split(MSG_SEPARATOR).collect();
                 if msg_vec[0] != uuid.to_string() {
                     print_msg("Rx", &msg);
+                    let mut rng = thread_rng();
+                    play_note(conn_out.clone(), rng.gen_range(50, 80), 1);
                 }
             },
             Err(ref err) if err.kind() == ErrorKind::WouldBlock => (),
@@ -94,7 +99,7 @@ fn check_stream(uuid: Uuid, server_address: &String) -> std::sync::mpsc::Sender<
                 let mut buff = msg.clone().into_bytes();
                 buff.resize(MSG_SIZE, 0);
                 client.write_all(&buff).expect("writing to socket failed");
-       print_msg("Tx", &msg);
+                print_msg("Tx", &msg);
             },
             Err(TryRecvError::Empty) => (),
             Err(TryRecvError::Disconnected) => break
@@ -106,38 +111,24 @@ fn check_stream(uuid: Uuid, server_address: &String) -> std::sync::mpsc::Sender<
     tx
 }
 
-fn play_note(conn_out: &mut midir::MidiOutputConnection, note: u8, duration: u64) {
+fn play_note(conn_out: std::sync::Arc<std::sync::Mutex<midir::MidiOutputConnection>>, note: u8, duration: u64) {
     const NOTE_ON_MSG: u8 = 0x90;
     const NOTE_OFF_MSG: u8 = 0x80;
     const VELOCITY: u8 = 0x64;
     println!("Playing note {:?}", note);
     // We're ignoring errors in here
-    let _ = conn_out.send(&[NOTE_ON_MSG, note, VELOCITY]);
+    let mut conn_out_shared = conn_out.lock().unwrap();
+    let _ = conn_out_shared.send(&[NOTE_ON_MSG, note, VELOCITY]);
     thread::sleep(Duration::from_millis(duration * 150));
-    let _ = conn_out.send(&[NOTE_OFF_MSG, note, VELOCITY]);
-}
-
-fn play_sample_notes(mut conn_out: &mut midir::MidiOutputConnection) {
-    println!("Playing sample notes...\n");
-
-    for _ in 1..3 {
-        play_note(&mut conn_out, 66, 4);
-        play_note(&mut conn_out, 65, 3);
-        play_note(&mut conn_out, 63, 1);
-        play_note(&mut conn_out, 61, 6);
-        play_note(&mut conn_out, 59, 2);
-        play_note(&mut conn_out, 58, 4);
-        play_note(&mut conn_out, 56, 4);
-        play_note(&mut conn_out, 54, 4);
-    }
-    thread::sleep(Duration::from_millis(4 * 150));
+    let _ = conn_out_shared.send(&[NOTE_OFF_MSG, note, VELOCITY]);
 }
 
 fn print_welcome(uuid: Uuid, server_address: &String) {
-    println!("<><><><><><><><><><><><><><><><><><><><><><>");
-    println!("UUID:\t{}", uuid);
-    println!("Server:\t{}", server_address);
-    println!("");
+    println!("{:♥<52}", "");
+    println!("UUID:\t\t{}", uuid);
+    println!("Server:\t\t{}", server_address);
+    println!("Midi port:\t{}", MIDI_OUTPORT);
+    println!("{:♥<52}", "");
 }
 
 fn print_msg(msg_type: &str, msg: &str) {

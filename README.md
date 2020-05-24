@@ -28,4 +28,4 @@ Then run the client:
 
 ## Midi
 
-The application will create a virtual port called "REMOTE-MIDI".
+The application will create a virtual port called "REMOTE_MIDI".

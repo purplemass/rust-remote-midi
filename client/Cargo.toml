@@ -6,4 +6,5 @@ edition = "2018"
 
 [dependencies]
 midir = "0.6.0"
+rand = "0.7.3"
 uuid = { version = "0.8", features = ["serde", "v4"] }
