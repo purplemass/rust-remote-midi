@@ -84,9 +84,13 @@ fn check_stream(uuid: Uuid, server_address: &String, conn_out: std::sync::Arc<st
                 let msg = String::from_utf8(msg).expect("Invalid utf8 message");
                 let msg_vec: Vec<&str> = msg.split(MSG_SEPARATOR).collect();
                 if msg_vec[0] != uuid.to_string() {
-                    let mut rng = thread_rng();
-                    play_note(conn_out.clone(), rng.gen_range(50, 80), 1);
                     print_log(&format!("< {}", get_msg(&msg)).to_string());
+                    let mut rng = thread_rng();
+                    match msg_vec[1] {
+                        "1" => play_note(conn_out.clone(), 12, 1),
+                        "2" => play_note(conn_out.clone(), 15, 1),
+                        _ => play_note(conn_out.clone(), rng.gen_range(50, 80), 1),
+                    }
                 }
             },
             Err(ref err) if err.kind() == ErrorKind::WouldBlock => (),
@@ -115,14 +119,17 @@ fn check_stream(uuid: Uuid, server_address: &String, conn_out: std::sync::Arc<st
 }
 
 fn play_note(conn_out: std::sync::Arc<std::sync::Mutex<midir::MidiOutputConnection>>, note: u8, duration: u64) {
-    const NOTE_ON_MSG: u8 = 0x90;
-    const NOTE_OFF_MSG: u8 = 0x80;
-    const VELOCITY: u8 = 0x64;
+    // https://people.carleton.edu/~jellinge/m208w14/pdf/02MIDIBasics_doc.pdf
+    // channel 1:  0x90 off 0x80 on
+    // channel 16: 0x9F off 0x8F on
+    const NOTE_ON_MSG: u8 = 0x9E;
+    const NOTE_OFF_MSG: u8 = 0x8E;
+    // const VELOCITY: u8 = 0x64;
     // We're ignoring errors in here
     let mut conn_out_shared = conn_out.lock().unwrap();
-    let _ = conn_out_shared.send(&[NOTE_ON_MSG, note, VELOCITY]);
+    let _ = conn_out_shared.send(&[NOTE_ON_MSG, note, 127]);
     thread::sleep(Duration::from_millis(duration * 150));
-    let _ = conn_out_shared.send(&[NOTE_OFF_MSG, note, VELOCITY]);
+    let _ = conn_out_shared.send(&[NOTE_OFF_MSG, note, 0]);
     // print_log(&format!("play note {}", note).to_string());
 }
 
