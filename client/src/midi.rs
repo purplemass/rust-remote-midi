@@ -49,7 +49,7 @@ pub fn play_note(conn_out: Arc<Mutex<MidiOutputConnection>>, note: u8, duration:
     // print_log(&format!("play note {}", note).to_string());
 }
 
-pub fn get_ports<'a>(
+pub fn get_ports(
     midi_in: MidiInput,
     midi_out: MidiOutput,
 ) -> Result<(Vec<String>, Vec<String>), Box<dyn Error>> {
@@ -67,14 +67,14 @@ pub fn get_ports<'a>(
         }
     }
 
-    if in_ports.len() > 0 {
+    if !in_ports.is_empty() {
         println!("Available input ports:");
         println!("{:?}", in_ports);
     } else {
         println!("No input ports found");
     }
     print_separator();
-    if out_ports.len() > 0 {
+    if !out_ports.is_empty() {
         println!("Available input ports:");
         println!("{:?}", out_ports);
     } else {

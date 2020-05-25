@@ -1,6 +1,6 @@
 use chrono::prelude::*;
 
-pub fn get_msg<'a>(msg: &'a str) -> &'a str {
+pub fn get_msg(msg: &str) -> &str {
     let msg_vec: Vec<&str> = msg.split(crate::MSG_SEPARATOR).collect();
     msg_vec[1]
 }

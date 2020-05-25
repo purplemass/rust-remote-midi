@@ -86,7 +86,7 @@ fn get_vars() -> (bool, String, String) {
 
 fn check_tcp_stream(
     uuid: Uuid,
-    server_address: &String,
+    server_address: &str,
     conn_out: Arc<Mutex<midir::MidiOutputConnection>>,
 ) -> Sender<String> {
     let mut client = TcpStream::connect(server_address).expect("Stream failed to connect");
@@ -144,7 +144,7 @@ fn check_tcp_stream(
     tx
 }
 
-fn print_welcome(uuid: Uuid, server_address: &String, midi_port: &String) {
+fn print_welcome(uuid: Uuid, server_address: &str, midi_port: &str) {
     utils::print_separator();
     println!("UUID:\t\t{}", uuid);
     println!("Server:\t\t{}", server_address);
