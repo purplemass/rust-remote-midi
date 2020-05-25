@@ -6,7 +6,8 @@ use std::env;
 use std::io::{self, ErrorKind, Read, Write};
 use std::net::TcpStream;
 use std::process;
-use std::sync::mpsc::{self, TryRecvError};
+use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{self, Sender, TryRecvError};
 use std::thread;
 use std::time::Duration;
 
@@ -20,6 +21,7 @@ const SERVER_PORT: &str = "6000";
 const MIDI_OUTPORT_ID: &str = "REMOTE_MIDI";
 const MSG_SEPARATOR: char = '|';
 const MSG_SIZE: usize = 256;
+
 
 fn main() {
     let (error, server_address, midi_port_number) = get_vars();
@@ -64,7 +66,7 @@ fn get_vars() -> (bool, String, String) {
     }
 }
 
-fn check_stream(uuid: Uuid, server_address: &String, conn_out: std::sync::Arc<std::sync::Mutex<midir::MidiOutputConnection>>) -> std::sync::mpsc::Sender<std::string::String> {
+fn check_stream(uuid: Uuid, server_address: &String, conn_out: Arc<Mutex<midir::MidiOutputConnection>>) -> Sender<String> {
     let mut client = TcpStream::connect(server_address).expect("Stream failed to connect");
     client.set_nonblocking(true).expect("failed to initiate non-blocking");
 
