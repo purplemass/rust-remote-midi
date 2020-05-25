@@ -9,7 +9,17 @@ use midir::os::unix::{VirtualOutput};
 use super::utils::print_separator;
 
 
-pub fn create_port(midi_port: &str) -> Arc<Mutex<MidiOutputConnection>> {
+pub fn create_midi_input() -> MidiInput {
+    let mut midi_in = MidiInput::new("MidiInput").unwrap();
+    midi_in.ignore(Ignore::None);
+    midi_in
+}
+
+pub fn create_midi_output() -> MidiOutput {
+    MidiOutput::new("MidiOutput").unwrap()
+}
+
+pub fn create_virtual_port(midi_port: &str) -> Arc<Mutex<MidiOutputConnection>> {
     let midi_out = MidiOutput::new("RemoteMidiOutput").unwrap();
     let conn_out = midi_out.create_virtual(midi_port).unwrap();
     Arc::new(Mutex::new(conn_out))
@@ -35,29 +45,35 @@ pub fn play_note(conn_out: Arc<Mutex<MidiOutputConnection>>, note: u8, duration:
     // print_log(&format!("play note {}", note).to_string());
 }
 
-pub fn get_ports() -> Result<(Vec<String>, Vec<String>), Box<dyn Error>> {
-    let mut midi_in_ports: Vec<String> = Vec::new();
-    let mut midi_out_ports: Vec<String> = Vec::new();
-    let mut midi_in = MidiInput::new("midir test input")?;
-    midi_in.ignore(Ignore::None);
-    let midi_out = MidiOutput::new("midir test output")?;
+pub fn get_ports<'a>(midi_in: MidiInput, midi_out: MidiOutput) -> Result<(Vec<String>, Vec<String>), Box<dyn Error>> {
+    let mut in_ports: Vec<String> = Vec::new();
+    let mut out_ports: Vec<String> = Vec::new();
 
-    println!("Available input ports:");
-    for (i, p) in midi_in.ports().iter().enumerate() {
+    for p in midi_in.ports().iter() {
         if !midi_in.port_name(p)?.contains(crate::MIDI_OUTPORT_ID) {
-            println!("{}: {}", i, midi_in.port_name(p)?);
-            midi_in_ports.push(midi_in.port_name(p)?);
+            in_ports.push(midi_in.port_name(p)?);
         }
     }
-    print_separator();
-    println!("Available output ports:");
-    for (i, p) in midi_out.ports().iter().enumerate() {
+    for p in midi_out.ports().iter() {
         if !midi_out.port_name(p)?.contains(crate::MIDI_OUTPORT_ID) {
-            println!("{}: {}", i, midi_out.port_name(p)?);
-            midi_out_ports.push(midi_out.port_name(p)?);
+            out_ports.push(midi_out.port_name(p)?);
         }
     }
 
+    if in_ports.len() > 0 {
+        println!("Available input ports:");
+        println!("{:?}", in_ports);
+    } else {
+        println!("No input ports found");
+    }
     print_separator();
-    Ok((midi_in_ports, midi_out_ports))
+    if out_ports.len() > 0 {
+        println!("Available input ports:");
+        println!("{:?}", out_ports);
+    } else {
+        println!("No output ports found");
+    }
+    print_separator();
+
+    Ok((in_ports, out_ports))
 }

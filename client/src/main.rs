@@ -32,14 +32,20 @@ fn main() {
 
     print_welcome(uuid, &server_address, &midi_port);
 
-    match midi::get_ports() {
-        Ok(_) => (),
-        Err(err) => println!("Error: {}", err)
-    }
+    // create Midi in/out and virtual port
+    let midi_in = midi::create_midi_input();
+    let midi_out = midi::create_midi_output();
+    let (_in_ports, _out_ports) = match midi::get_ports(midi_in, midi_out) {
+        Ok((in_ports, out_ports)) => (in_ports, out_ports),
+        Err(err) => {
+            println!("Error: {}", err);
+            (vec![], vec![])
+        },
+    };
 
-    let conn_out_shared = midi::create_port(midi_port);
+    let conn_out_shared = midi::create_virtual_port(midi_port);
 
-    let tx = check_stream(uuid, &server_address, conn_out_shared);
+    let tx = check_tcp_stream(uuid, &server_address, conn_out_shared);
 
     println!("\nWrite a message or type \":q\" to exit:");
 
@@ -71,7 +77,7 @@ fn get_vars() -> (bool, String, String) {
     }
 }
 
-fn check_stream(uuid: Uuid, server_address: &String, conn_out: Arc<Mutex<midir::MidiOutputConnection>>) -> Sender<String> {
+fn check_tcp_stream(uuid: Uuid, server_address: &String, conn_out: Arc<Mutex<midir::MidiOutputConnection>>) -> Sender<String> {
     let mut client = TcpStream::connect(server_address).expect("Stream failed to connect");
     client.set_nonblocking(true).expect("failed to initiate non-blocking");
 
