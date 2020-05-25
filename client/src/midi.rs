@@ -1,9 +1,12 @@
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
+use std::error::Error;
 
-use midir::{MidiOutput, MidiOutputConnection};
+use midir::{MidiInput, MidiOutput, MidiOutputConnection, Ignore};
 use midir::os::unix::{VirtualOutput};
+
+use super::utils::print_separator;
 
 
 pub fn create_port(midi_port: &str) -> Arc<Mutex<MidiOutputConnection>> {
@@ -30,4 +33,31 @@ pub fn play_note(conn_out: Arc<Mutex<MidiOutputConnection>>, note: u8, duration:
     thread::sleep(Duration::from_millis(duration * 150));
     let _ = conn_out_shared.send(&[NOTE_OFF_MSG, note, 0]);
     // print_log(&format!("play note {}", note).to_string());
+}
+
+pub fn get_ports() -> Result<(Vec<String>, Vec<String>), Box<dyn Error>> {
+    let mut midi_in_ports: Vec<String> = Vec::new();
+    let mut midi_out_ports: Vec<String> = Vec::new();
+    let mut midi_in = MidiInput::new("midir test input")?;
+    midi_in.ignore(Ignore::None);
+    let midi_out = MidiOutput::new("midir test output")?;
+
+    println!("Available input ports:");
+    for (i, p) in midi_in.ports().iter().enumerate() {
+        if !midi_in.port_name(p)?.contains(crate::MIDI_OUTPORT_ID) {
+            println!("{}: {}", i, midi_in.port_name(p)?);
+            midi_in_ports.push(midi_in.port_name(p)?);
+        }
+    }
+    print_separator();
+    println!("Available output ports:");
+    for (i, p) in midi_out.ports().iter().enumerate() {
+        if !midi_out.port_name(p)?.contains(crate::MIDI_OUTPORT_ID) {
+            println!("{}: {}", i, midi_out.port_name(p)?);
+            midi_out_ports.push(midi_out.port_name(p)?);
+        }
+    }
+
+    print_separator();
+    Ok((midi_in_ports, midi_out_ports))
 }

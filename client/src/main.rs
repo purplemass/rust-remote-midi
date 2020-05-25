@@ -32,6 +32,11 @@ fn main() {
 
     print_welcome(uuid, &server_address, &midi_port);
 
+    match midi::get_ports() {
+        Ok(_) => (),
+        Err(err) => println!("Error: {}", err)
+    }
+
     let conn_out_shared = midi::create_port(midi_port);
 
     let tx = check_stream(uuid, &server_address, conn_out_shared);
@@ -121,9 +126,9 @@ fn check_stream(uuid: Uuid, server_address: &String, conn_out: Arc<Mutex<midir::
 }
 
 fn print_welcome(uuid: Uuid, server_address: &String, midi_port: &String) {
-    println!("{:♥<52}", "");
+    utils::print_separator();
     println!("UUID:\t\t{}", uuid);
     println!("Server:\t\t{}", server_address);
     println!("Midi port:\t{}", midi_port);
-    println!("{:♥<52}", "");
+    utils::print_separator();
 }
