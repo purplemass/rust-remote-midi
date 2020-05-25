@@ -1,13 +1,12 @@
+use std::error::Error;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use std::error::Error;
 
-use midir::{MidiInput, MidiOutput, MidiOutputConnection, Ignore};
-use midir::os::unix::{VirtualOutput};
+use midir::os::unix::VirtualOutput;
+use midir::{Ignore, MidiInput, MidiOutput, MidiOutputConnection};
 
 use super::utils::print_separator;
-
 
 pub fn create_midi_input() -> MidiInput {
     let mut midi_in = MidiInput::new("MidiInput").unwrap();
@@ -25,7 +24,12 @@ pub fn create_virtual_port(midi_port: &str) -> Arc<Mutex<MidiOutputConnection>> 
     Arc::new(Mutex::new(conn_out))
 }
 
-pub fn play_single_note(conn_out: Arc<Mutex<MidiOutputConnection>>, note_msg: u8, note: u8, velocity: u8) {
+pub fn play_single_note(
+    conn_out: Arc<Mutex<MidiOutputConnection>>,
+    note_msg: u8,
+    note: u8,
+    velocity: u8,
+) {
     let mut conn_out_shared = conn_out.lock().unwrap();
     let _ = conn_out_shared.send(&[note_msg, note, velocity]);
 }
@@ -45,7 +49,10 @@ pub fn play_note(conn_out: Arc<Mutex<MidiOutputConnection>>, note: u8, duration:
     // print_log(&format!("play note {}", note).to_string());
 }
 
-pub fn get_ports<'a>(midi_in: MidiInput, midi_out: MidiOutput) -> Result<(Vec<String>, Vec<String>), Box<dyn Error>> {
+pub fn get_ports<'a>(
+    midi_in: MidiInput,
+    midi_out: MidiOutput,
+) -> Result<(Vec<String>, Vec<String>), Box<dyn Error>> {
     let mut in_ports: Vec<String> = Vec::new();
     let mut out_ports: Vec<String> = Vec::new();
 
