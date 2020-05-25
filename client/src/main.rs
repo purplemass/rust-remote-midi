@@ -10,11 +10,11 @@ use std::sync::mpsc::{self, TryRecvError};
 use std::thread;
 use std::time::Duration;
 
-use chrono::prelude::*;
 use rand::{thread_rng, Rng};
 use uuid::Uuid;
 
 mod midi;
+mod utils;
 
 const SERVER_PORT: &str = "6000";
 const MIDI_OUTPORT_ID: &str = "REMOTE_MIDI";
@@ -80,7 +80,7 @@ fn check_stream(uuid: Uuid, server_address: &String, conn_out: std::sync::Arc<st
                 let msg = String::from_utf8(msg).expect("Invalid utf8 message");
                 let msg_vec: Vec<&str> = msg.split(MSG_SEPARATOR).collect();
                 if msg_vec[0] != uuid.to_string() {
-                    print_log(&format!("< {}", get_msg(&msg)).to_string());
+                    utils::print_log(&format!("< {}", utils::get_msg(&msg)).to_string());
                     let mut rng = thread_rng();
                     match msg_vec[1] {
                         "a" => midi::play_note(conn_out.clone(), 12, 1),
@@ -95,7 +95,7 @@ fn check_stream(uuid: Uuid, server_address: &String, conn_out: std::sync::Arc<st
             },
             Err(ref err) if err.kind() == ErrorKind::WouldBlock => (),
             Err(_) => {
-                print_log("connection severed");
+                utils::print_log("connection severed");
                 break;
             }
         }
@@ -106,7 +106,7 @@ fn check_stream(uuid: Uuid, server_address: &String, conn_out: std::sync::Arc<st
                 let mut buff = msg.clone().into_bytes();
                 buff.resize(MSG_SIZE, 0);
                 client.write_all(&buff).expect("writing to socket failed");
-                print_log(&format!("> {}", get_msg(&msg)).to_string());
+                utils::print_log(&format!("> {}", utils::get_msg(&msg)).to_string());
             },
             Err(TryRecvError::Empty) => (),
             Err(TryRecvError::Disconnected) => break
@@ -118,23 +118,10 @@ fn check_stream(uuid: Uuid, server_address: &String, conn_out: std::sync::Arc<st
     tx
 }
 
-fn get_time() -> chrono::DateTime<chrono::Utc> {
-    Utc::now()
-}
-
-fn print_log(msg: &str) {
-    println!("{} | {}", get_time(), msg);
-}
-
 fn print_welcome(uuid: Uuid, server_address: &String, midi_port: &String) {
     println!("{:♥<52}", "");
     println!("UUID:\t\t{}", uuid);
     println!("Server:\t\t{}", server_address);
     println!("Midi port:\t{}", midi_port);
     println!("{:♥<52}", "");
-}
-
-fn get_msg<'a>(msg: &'a str) -> &'a str {
-    let msg_vec: Vec<&str> = msg.split(MSG_SEPARATOR).collect();
-    msg_vec[1]
 }
