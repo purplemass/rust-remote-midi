@@ -36,7 +36,7 @@ fn main() {
     // create Midi in/out and virtual port
     let midi_in = midi::create_midi_input();
     let midi_out = midi::create_midi_output();
-    let (_in_ports, _out_ports) = match midi::get_ports(&midi_in, &midi_out) {
+    let (in_ports, _out_ports) = match midi::get_ports(&midi_in, &midi_out) {
         Ok((in_ports, out_ports)) => (in_ports, out_ports),
         Err(err) => {
             println!("Error: {}", err);
@@ -47,6 +47,10 @@ fn main() {
     let conn_out_shared = midi::create_virtual_port(midi_port);
 
     let tx = check_tcp_stream(uuid, &server_address, conn_out_shared);
+
+    for in_port in in_ports {
+        midi::create_in_port_listener(in_port);
+    }
 
     println!("\nWrite a message or type \":q\" to exit:");
 

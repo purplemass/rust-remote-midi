@@ -24,6 +24,22 @@ pub fn create_virtual_port(midi_port: &str) -> Arc<Mutex<MidiOutputConnection>> 
     Arc::new(Mutex::new(conn_out))
 }
 
+pub fn create_in_port_listener(port: MidiInputPort) {
+    let port_shared = Arc::new(port);
+    thread::spawn(move || {
+        let thread_midi_in = create_midi_input();
+        let port = &port_shared.clone();
+        let port_name = thread_midi_in.port_name(port);
+        println!("Started monitoring {:?}.", port_name);
+        let _conn_in = thread_midi_in.connect(port, "REMOTE_MIDI1", move |stamp, message, _| {
+            println!("{}: {:?} (len = {})", stamp, message, message.len());
+        }, ());
+        loop {
+            thread::sleep(Duration::from_millis(100));
+        }
+    });
+}
+
 pub fn play_single_note(
     conn_out: Arc<Mutex<MidiOutputConnection>>,
     note_msg: u8,
