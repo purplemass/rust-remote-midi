@@ -2,12 +2,14 @@ use std::error::Error;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use midir::os::unix::VirtualOutput;
 use midir::{Ignore, MidiInput, MidiInputPort, MidiOutput, MidiOutputConnection, MidiOutputPort};
 
 use super::utils::print_separator;
+
+const DEBOUNCE_RATE: u32 = 25000000;
 
 pub fn create_midi_input() -> MidiInput {
     let mut midi_in = MidiInput::new("MidiInput").unwrap();
@@ -33,12 +35,17 @@ pub fn create_in_port_listener(uuid: uuid::Uuid, port: MidiInputPort, tx: &Sende
         let port = &port_shared.clone();
         let port_name = midi_in.port_name(port);
         println!("Monitoring {}.", port_name.unwrap());
+        let mut now = Instant::now();
         let _conn_in = midi_in.connect(
             port,
             "ConnIn",
             move |_stamp, message, _| {
-                let compound_msg = format!("{}{}MIDI:{:?}", uuid, crate::MSG_SEPARATOR, message);
-                tx.send(compound_msg).unwrap();
+                if now.elapsed() > Duration::new(0, DEBOUNCE_RATE) {
+                    let compound_msg =
+                        format!("{}{}MIDI:{:?}", uuid, crate::MSG_SEPARATOR, message);
+                    tx.send(compound_msg).unwrap();
+                    now = Instant::now();
+                }
             },
             (),
         );
