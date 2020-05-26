@@ -4,7 +4,7 @@ use std::thread;
 use std::time::Duration;
 
 use midir::os::unix::VirtualOutput;
-use midir::{Ignore, MidiInput, MidiOutput, MidiOutputConnection};
+use midir::{Ignore, MidiInput, MidiOutput, MidiOutputConnection, MidiInputPort, MidiOutputPort};
 
 use super::utils::print_separator;
 
@@ -50,35 +50,34 @@ pub fn play_note(conn_out: Arc<Mutex<MidiOutputConnection>>, note: u8, duration:
 }
 
 pub fn get_ports(
-    midi_in: MidiInput,
-    midi_out: MidiOutput,
-) -> Result<(Vec<String>, Vec<String>), Box<dyn Error>> {
-    let mut in_ports: Vec<String> = Vec::new();
-    let mut out_ports: Vec<String> = Vec::new();
+    midi_in: &MidiInput,
+    midi_out: &MidiOutput,
+) -> Result<(Vec<MidiInputPort>, Vec<MidiOutputPort>), Box<dyn Error>> {
+    let mut in_ports: Vec<MidiInputPort> = Vec::new();
+    let mut out_ports: Vec<MidiOutputPort> = Vec::new();
 
-    for p in midi_in.ports().iter() {
-        if !midi_in.port_name(p)?.contains(crate::MIDI_OUTPORT_ID) {
-            in_ports.push(midi_in.port_name(p)?);
-        }
-    }
-    for p in midi_out.ports().iter() {
-        if !midi_out.port_name(p)?.contains(crate::MIDI_OUTPORT_ID) {
-            out_ports.push(midi_out.port_name(p)?);
-        }
-    }
-
-    if !in_ports.is_empty() {
+    if !midi_in.ports().is_empty() {
         println!("Available input ports:");
-        println!("{:?}", in_ports);
     } else {
         println!("No input ports found");
     }
+    for port in midi_in.ports() {
+        if !midi_in.port_name(&port)?.contains(crate::MIDI_OUTPORT_ID) {
+            println!("\t\t{}", midi_in.port_name(&port).unwrap());
+            in_ports.push(port);
+        }
+    }
     print_separator();
-    if !out_ports.is_empty() {
-        println!("Available input ports:");
-        println!("{:?}", out_ports);
+    if !midi_out.ports().is_empty() {
+        println!("Available output ports:");
     } else {
         println!("No output ports found");
+    }
+    for port in midi_out.ports() {
+        if !midi_out.port_name(&port)?.contains(crate::MIDI_OUTPORT_ID) {
+            println!("\t\t{}", midi_out.port_name(&port).unwrap());
+            out_ports.push(port);
+        }
     }
     print_separator();
 

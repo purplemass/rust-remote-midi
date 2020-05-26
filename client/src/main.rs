@@ -36,7 +36,7 @@ fn main() {
     // create Midi in/out and virtual port
     let midi_in = midi::create_midi_input();
     let midi_out = midi::create_midi_output();
-    let (_in_ports, _out_ports) = match midi::get_ports(midi_in, midi_out) {
+    let (_in_ports, _out_ports) = match midi::get_ports(&midi_in, &midi_out) {
         Ok((in_ports, out_ports)) => (in_ports, out_ports),
         Err(err) => {
             println!("Error: {}", err);
