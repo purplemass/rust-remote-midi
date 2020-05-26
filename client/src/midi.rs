@@ -34,7 +34,7 @@ pub fn create_in_port_listener(uuid: uuid::Uuid, port: MidiInputPort, tx: &Sende
         let port_name = midi_in.port_name(port);
         println!("Monitoring {}.", port_name.unwrap());
         let _conn_in = midi_in.connect(port, "ConnIn", move | _stamp, message, _| {
-            let compound_msg = format!("{}{}{:?}", uuid, crate::MSG_SEPARATOR, message);
+            let compound_msg = format!("{}{}MIDI:{:?}", uuid, crate::MSG_SEPARATOR, message);
             tx.send(compound_msg).unwrap();
         }, ());
         loop {
