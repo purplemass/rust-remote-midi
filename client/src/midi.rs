@@ -72,26 +72,22 @@ pub fn get_ports(
     let mut in_ports: Vec<MidiInputPort> = Vec::new();
     let mut out_ports: Vec<MidiOutputPort> = Vec::new();
 
-    if !midi_in.ports().is_empty() {
-        println!("Available input ports:");
-    } else {
+    if midi_in.ports().is_empty() {
         println!("No input ports found");
     }
     for port in midi_in.ports() {
         if !midi_in.port_name(&port)?.contains(crate::MIDI_OUTPORT_ID) {
-            println!("\t\t{}", midi_in.port_name(&port).unwrap());
+            println!("Input port:\t{}", midi_in.port_name(&port).unwrap());
             in_ports.push(port);
         }
     }
     print_separator();
-    if !midi_out.ports().is_empty() {
-        println!("Available output ports:");
-    } else {
+    if midi_out.ports().is_empty() {
         println!("No output ports found");
     }
     for port in midi_out.ports() {
         if !midi_out.port_name(&port)?.contains(crate::MIDI_OUTPORT_ID) {
-            println!("\t\t{}", midi_out.port_name(&port).unwrap());
+            println!("Output port:\t{}", midi_out.port_name(&port).unwrap());
             out_ports.push(port);
         }
     }

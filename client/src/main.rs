@@ -152,6 +152,6 @@ fn print_welcome(uuid: Uuid, server_address: &str, midi_port: &str) {
     utils::print_separator();
     println!("UUID:\t\t{}", uuid);
     println!("Server:\t\t{}", server_address);
-    println!("Midi port:\t{}", midi_port);
+    println!("Virtual port:\t{}", midi_port);
     utils::print_separator();
 }
