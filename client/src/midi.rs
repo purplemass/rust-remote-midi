@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{Sender};
 use std::thread;
 use std::time::Duration;
 
@@ -24,18 +25,20 @@ pub fn create_virtual_port(midi_port: &str) -> Arc<Mutex<MidiOutputConnection>> 
     Arc::new(Mutex::new(conn_out))
 }
 
-pub fn create_in_port_listener(port: MidiInputPort) {
+pub fn create_in_port_listener(uuid: uuid::Uuid, port: MidiInputPort, tx: &Sender<String>) {
     let port_shared = Arc::new(port);
+    let tx = tx.clone();
     thread::spawn(move || {
-        let thread_midi_in = create_midi_input();
+        let midi_in = create_midi_input();
         let port = &port_shared.clone();
-        let port_name = thread_midi_in.port_name(port);
-        println!("Started monitoring {:?}.", port_name);
-        let _conn_in = thread_midi_in.connect(port, "REMOTE_MIDI1", move |stamp, message, _| {
-            println!("{}: {:?} (len = {})", stamp, message, message.len());
+        let port_name = midi_in.port_name(port);
+        println!("Monitoring {}.", port_name.unwrap());
+        let _conn_in = midi_in.connect(port, "ConnIn", move | _stamp, message, _| {
+            let compound_msg = format!("{}{}{:?}", uuid, crate::MSG_SEPARATOR, message);
+            tx.send(compound_msg).unwrap();
         }, ());
         loop {
-            thread::sleep(Duration::from_millis(100));
+            thread::sleep(Duration::from_millis(1000));
         }
     });
 }

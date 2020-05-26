@@ -49,7 +49,7 @@ fn main() {
     let tx = check_tcp_stream(uuid, &server_address, conn_out_shared);
 
     for in_port in in_ports {
-        midi::create_in_port_listener(in_port);
+        midi::create_in_port_listener(uuid, in_port, &tx);
     }
 
     println!("\nWrite a message or type \":q\" to exit:");
