@@ -131,7 +131,7 @@ fn check_tcp_stream(
                             _ => {
                                 let mut rng = thread_rng();
                                 midi::play_note(conn_out.clone(), rng.gen_range(50, 80), 1);
-                            },
+                            }
                         }
                     }
                 }

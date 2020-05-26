@@ -1,11 +1,11 @@
 use std::error::Error;
+use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{Sender};
 use std::thread;
 use std::time::Duration;
 
 use midir::os::unix::VirtualOutput;
-use midir::{Ignore, MidiInput, MidiOutput, MidiOutputConnection, MidiInputPort, MidiOutputPort};
+use midir::{Ignore, MidiInput, MidiInputPort, MidiOutput, MidiOutputConnection, MidiOutputPort};
 
 use super::utils::print_separator;
 
@@ -33,10 +33,15 @@ pub fn create_in_port_listener(uuid: uuid::Uuid, port: MidiInputPort, tx: &Sende
         let port = &port_shared.clone();
         let port_name = midi_in.port_name(port);
         println!("Monitoring {}.", port_name.unwrap());
-        let _conn_in = midi_in.connect(port, "ConnIn", move | _stamp, message, _| {
-            let compound_msg = format!("{}{}MIDI:{:?}", uuid, crate::MSG_SEPARATOR, message);
-            tx.send(compound_msg).unwrap();
-        }, ());
+        let _conn_in = midi_in.connect(
+            port,
+            "ConnIn",
+            move |_stamp, message, _| {
+                let compound_msg = format!("{}{}MIDI:{:?}", uuid, crate::MSG_SEPARATOR, message);
+                tx.send(compound_msg).unwrap();
+            },
+            (),
+        );
         loop {
             thread::sleep(Duration::from_millis(1000));
         }
@@ -69,7 +74,9 @@ pub fn play_note(conn_out: Arc<Mutex<MidiOutputConnection>>, note: u8, duration:
 }
 
 fn check_valid_port(port_name: String) -> bool {
-    !(port_name.contains(crate::MIDI_OUTPORT_ID) || port_name.contains("Traktor Virtual Port"))
+    !(port_name.contains(crate::MIDI_OUTPORT_ID)
+        || port_name.contains("Traktor Virtual Input")
+        || port_name.contains("Traktor Virtual Output"))
 }
 
 pub fn get_ports(
