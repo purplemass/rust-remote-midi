@@ -5,7 +5,9 @@ use std::net::TcpListener;
 use std::sync::mpsc;
 use std::thread;
 
-use chrono::prelude::*;
+mod utils;
+
+use utils::{get_time, print_log, sleep};
 
 const LOCAL: &str = "0.0.0.0:6000";
 const MSG_SEPARATOR: char = '|';
@@ -60,18 +62,6 @@ fn main() {
 
         sleep();
     }
-}
-
-fn sleep() {
-    thread::sleep(::std::time::Duration::from_millis(100));
-}
-
-fn get_time() -> chrono::DateTime<chrono::Utc> {
-    Utc::now()
-}
-
-fn print_log(address: &std::net::SocketAddr, msg: &str) {
-    println!("{} | {} | {}", get_time(), address, msg);
 }
 
 fn print_welcome() {
