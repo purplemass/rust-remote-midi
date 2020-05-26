@@ -1,19 +1,27 @@
 extern crate chrono;
+extern crate log;
 
 use std::io::{ErrorKind, Read, Write};
 use std::net::TcpListener;
 use std::sync::mpsc;
 use std::thread;
 
+use log::{error, info};
+
 mod utils;
 
-use utils::{get_time, print_log, sleep};
+use utils::{get_time, print_log, setup_logger, sleep};
 
 const LOCAL: &str = "0.0.0.0:6000";
+const LOG_FILE: &str = "/tmp/server.log";
 const MSG_SEPARATOR: char = '|';
 const MSG_SIZE: usize = 256;
 
 fn main() {
+    match setup_logger() {
+        Ok(_) => (),
+        Err(e) => error!("server error: {:?}", e),
+    }
     print_welcome();
 
     let server = TcpListener::bind(LOCAL).expect("Listener failed to bind");
@@ -65,6 +73,7 @@ fn main() {
 }
 
 fn print_welcome() {
+    info!("server started");
     println!("{:♥<52}", "");
     println!("Identifier:\t{}", "REMOTE MIDI SERVER");
     println!("Started on:\t{}", LOCAL);
