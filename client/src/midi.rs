@@ -68,6 +68,10 @@ pub fn play_note(conn_out: Arc<Mutex<MidiOutputConnection>>, note: u8, duration:
     // print_log(&format!("play note {}", note).to_string());
 }
 
+fn check_valid_port(port_name: String) -> bool {
+    !(port_name.contains(crate::MIDI_OUTPORT_ID) || port_name.contains("Traktor Virtual Port"))
+}
+
 pub fn get_ports(
     midi_in: &MidiInput,
     midi_out: &MidiOutput,
@@ -75,24 +79,24 @@ pub fn get_ports(
     let mut in_ports: Vec<MidiInputPort> = Vec::new();
     let mut out_ports: Vec<MidiOutputPort> = Vec::new();
 
-    if midi_in.ports().is_empty() {
-        println!("No input ports found");
-    }
     for port in midi_in.ports() {
-        if !midi_in.port_name(&port)?.contains(crate::MIDI_OUTPORT_ID) {
+        if check_valid_port(midi_in.port_name(&port).unwrap()) {
             println!("Input port:\t{}", midi_in.port_name(&port).unwrap());
             in_ports.push(port);
         }
     }
-    print_separator();
-    if midi_out.ports().is_empty() {
-        println!("No output ports found");
+    if in_ports.is_empty() {
+        println!("No input ports found");
     }
+    print_separator();
     for port in midi_out.ports() {
-        if !midi_out.port_name(&port)?.contains(crate::MIDI_OUTPORT_ID) {
+        if check_valid_port(midi_out.port_name(&port).unwrap()) {
             println!("Output port:\t{}", midi_out.port_name(&port).unwrap());
             out_ports.push(port);
         }
+    }
+    if out_ports.is_empty() {
+        println!("No output ports found");
     }
     print_separator();
 
