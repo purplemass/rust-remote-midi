@@ -3,7 +3,7 @@ extern crate fern;
 use std::thread;
 
 use chrono::prelude::*;
-use log::{info};
+use log::info;
 
 pub fn sleep() {
     thread::sleep(::std::time::Duration::from_millis(100));
