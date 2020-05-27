@@ -1,4 +1,4 @@
-use chrono::prelude::*;
+use chrono::{DateTime, Utc};
 
 pub fn get_msg(msg: &str) -> &str {
     let msg_vec: Vec<&str> = msg.split(crate::MSG_SEPARATOR).collect();
@@ -13,6 +13,6 @@ pub fn print_separator() {
     println!("{:♥<52}", "");
 }
 
-fn get_time() -> chrono::DateTime<chrono::Utc> {
+fn get_time() -> DateTime<Utc> {
     Utc::now()
 }

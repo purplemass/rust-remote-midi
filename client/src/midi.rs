@@ -32,7 +32,7 @@ pub fn create_in_port_listener(uuid: uuid::Uuid, port: MidiInputPort, tx: &Sende
     let tx = tx.clone();
     thread::spawn(move || {
         let midi_in = create_midi_input();
-        let port = &port_shared.clone();
+        let port = &port_shared;
         let port_name = midi_in.port_name(port);
         println!("Monitoring {}.", port_name.unwrap());
         let mut now = Instant::now();

@@ -112,10 +112,10 @@ fn check_tcp_stream(
                 if msg_vec[0] != uuid.to_string() {
                     utils::print_log(&format!("< {}", utils::get_msg(&msg)).to_string());
                     let msg = msg_vec[1];
-                    let mut msg_midi: Vec<&str> = msg.split("[").collect();
+                    let mut msg_midi: Vec<&str> = msg.split('[').collect();
                     if msg_midi.len() == 2 {
-                        msg_midi = msg_midi[1].split("]").collect();
-                        msg_midi = msg_midi[0].split(",").collect();
+                        msg_midi = msg_midi[1].split(']').collect();
+                        msg_midi = msg_midi[0].split(',').collect();
                         let my_int1: u8 = msg_midi[0].trim().parse().unwrap();
                         let my_int2: u8 = msg_midi[1].trim().parse().unwrap();
                         let my_int3: u8 = msg_midi[2].trim().parse().unwrap();

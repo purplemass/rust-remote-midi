@@ -2,14 +2,14 @@ extern crate fern;
 
 use std::thread;
 
-use chrono::prelude::*;
+use chrono::{DateTime, Utc};
 use log::info;
 
 pub fn sleep() {
     thread::sleep(::std::time::Duration::from_millis(100));
 }
 
-pub fn get_time() -> chrono::DateTime<chrono::Utc> {
+pub fn get_time() -> DateTime<Utc> {
     Utc::now()
 }
 
