@@ -1,6 +1,5 @@
 extern crate chrono;
 extern crate midir;
-extern crate rand;
 
 use std::env;
 use std::io::{self, ErrorKind, Read, Write};
@@ -11,7 +10,6 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-use rand::{thread_rng, Rng};
 use uuid::Uuid;
 
 mod midi;
@@ -119,20 +117,7 @@ fn check_tcp_stream(
                         let my_int1: u8 = msg_midi[0].trim().parse().unwrap();
                         let my_int2: u8 = msg_midi[1].trim().parse().unwrap();
                         let my_int3: u8 = msg_midi[2].trim().parse().unwrap();
-                        midi::play_single_note(conn_out.clone(), my_int1, my_int2, my_int3)
-                    } else {
-                        match msg {
-                            "a" => midi::play_note(conn_out.clone(), 12, 1),
-                            "b" => midi::play_note(conn_out.clone(), 15, 1),
-                            "1" => midi::play_single_note(conn_out.clone(), 0x9E, 12, 127),
-                            "2" => midi::play_single_note(conn_out.clone(), 0x8E, 12, 0),
-                            "3" => midi::play_single_note(conn_out.clone(), 0x9E, 15, 127),
-                            "4" => midi::play_single_note(conn_out.clone(), 0x8E, 15, 0),
-                            _ => {
-                                let mut rng = thread_rng();
-                                midi::play_note(conn_out.clone(), rng.gen_range(50, 80), 1);
-                            }
-                        }
+                        midi::send_midi_message(conn_out.clone(), my_int1, my_int2, my_int3)
                     }
                 }
             }
