@@ -9,7 +9,8 @@ use midir::{Ignore, MidiInput, MidiInputPort, MidiOutput, MidiOutputConnection, 
 
 use super::utils::print_separator;
 
-const DEBOUNCE_RATE: u32 = 25000000;
+const BUFFER_TIME: Duration = Duration::from_millis(1000);
+const MONITOR_DELAY: Duration = Duration::from_millis(100);
 
 pub fn create_midi_input() -> MidiInput {
     let mut midi_in = MidiInput::new("MidiInput").unwrap();
@@ -27,23 +28,6 @@ pub fn create_virtual_port(midi_port: &str) -> Arc<Mutex<MidiOutputConnection>> 
     Arc::new(Mutex::new(conn_out))
 }
 
-// #[allow(unused_variables, unused_mut, dead_code)]
-#[allow(unused_variables)]
-fn debounce_message(
-    uuid: uuid::Uuid,
-    mut now: Instant,
-    tx: &Sender<String>,
-    message: &[u8],
-) -> Instant {
-    if now.elapsed() > Duration::new(0, DEBOUNCE_RATE) {
-        let compound_msg = format!("{}{}MIDI:{:?}", uuid, crate::MSG_SEPARATOR, message);
-        // tx.send(compound_msg).unwrap();
-        now = Instant::now();
-    }
-    now
-}
-
-#[derive(Clone)]
 struct Buffer {
     uuid: uuid::Uuid,
     queue: Vec<String>,
@@ -64,64 +48,50 @@ impl Buffer {
         self.queue = Vec::new();
     }
 
-    fn len(&mut self) -> usize {
-        self.queue.len()
-    }
-
-    fn add(&mut self, _tx: &Sender<String>, message: &[u8]) {
-        // let compound_msg = format!("{}{}MIDI:{:?}", self.uuid, crate::MSG_SEPARATOR, message);
-        let compound_msg = format!("{:?}", message);
-        println!("=======================================");
-        println!("NEW ==> [{:?}]", self.queue.len());
-        if self.last_call.elapsed() < Duration::new(1, 0) {
-            println!("COM ==> ADD");
+    fn add(&mut self, tx: &Sender<String>, message: &[u8]) {
+        let compound_msg = format!("{}{}MIDI:{:?}", self.uuid, crate::MSG_SEPARATOR, message);
+        if self.last_call.elapsed() < BUFFER_TIME {
             self.queue.push(compound_msg.clone());
         } else {
-            println!("COM ==> RESET");
+            tx.send(compound_msg).unwrap();
             self.reset();
         }
-        println!("MSG ==> {}", compound_msg);
-        println!("END ==> [{:?}]", self.queue.len());
     }
 }
 
 pub fn create_in_port_listener(uuid: uuid::Uuid, port: MidiInputPort, tx: &Sender<String>) {
     let port_shared = Arc::new(port);
-    let tx = tx.clone();
+    let tx_clone1 = tx.clone();
+    let tx_clone2 = tx.clone();
+
     thread::spawn(move || {
         let midi_in = create_midi_input();
-        let port = &port_shared;
-        let port_name = midi_in.port_name(port);
+        let port_name = midi_in.port_name(&port_shared);
+        let buffer = Arc::new(Mutex::new(Buffer::new(uuid)));
+
         println!("Monitoring {}.", port_name.unwrap());
-        let mut now = Instant::now();
-
-        let buffer = Buffer::new(uuid);
-
-        let test = Arc::new(Mutex::new(buffer));
 
         // monitor buffer
-        let cloned_buffer = test.clone();
+        let cloned_buffer = buffer.clone();
         thread::spawn(move || loop {
-            thread::sleep(Duration::new(0, DEBOUNCE_RATE - 20000));
+            thread::sleep(MONITOR_DELAY);
             let buffer = &mut cloned_buffer.lock().unwrap();
             let buffer_queue = &mut buffer.queue;
 
             if buffer_queue.len() > 0 {
-                println!("[1] [{:?}] [{:?}]", buffer_queue.len(), buffer_queue.last());
+                let last_message = buffer_queue.last();
+                &tx_clone1.send(last_message.unwrap().to_string()).unwrap();
                 buffer.reset();
-                let buffer_queue = &mut buffer.queue;
-                println!("[2] [{:?}] [{:?}]", buffer_queue.len(), buffer_queue.last());
             }
         });
 
         // monitor midi
-        let cloned_buffer = test.clone();
+        let cloned_buffer = buffer.clone();
         let _conn_in = midi_in.connect(
-            port,
+            &port_shared,
             "ConnIn",
             move |_stamp, message, _| {
-                cloned_buffer.lock().unwrap().add(&tx, message);
-                now = debounce_message(uuid, now, &tx, message);
+                cloned_buffer.lock().unwrap().add(&tx_clone2, message);
             },
             (),
         );
