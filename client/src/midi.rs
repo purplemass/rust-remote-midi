@@ -27,6 +27,64 @@ pub fn create_virtual_port(midi_port: &str) -> Arc<Mutex<MidiOutputConnection>> 
     Arc::new(Mutex::new(conn_out))
 }
 
+// #[allow(unused_variables, unused_mut, dead_code)]
+#[allow(unused_variables)]
+fn debounce_message(
+    uuid: uuid::Uuid,
+    mut now: Instant,
+    tx: &Sender<String>,
+    message: &[u8],
+) -> Instant {
+    if now.elapsed() > Duration::new(0, DEBOUNCE_RATE) {
+        let compound_msg = format!("{}{}MIDI:{:?}", uuid, crate::MSG_SEPARATOR, message);
+        // tx.send(compound_msg).unwrap();
+        now = Instant::now();
+    }
+    now
+}
+
+#[derive(Clone)]
+struct Buffer {
+    uuid: uuid::Uuid,
+    queue: Vec<String>,
+    last_call: Instant,
+}
+
+impl Buffer {
+    fn new(uuid: uuid::Uuid) -> Buffer {
+        Buffer {
+            uuid,
+            queue: Vec::new(),
+            last_call: Instant::now(),
+        }
+    }
+
+    fn reset(&mut self) {
+        self.last_call = Instant::now();
+        self.queue = Vec::new();
+    }
+
+    fn len(&mut self) -> usize {
+        self.queue.len()
+    }
+
+    fn add(&mut self, _tx: &Sender<String>, message: &[u8]) {
+        // let compound_msg = format!("{}{}MIDI:{:?}", self.uuid, crate::MSG_SEPARATOR, message);
+        let compound_msg = format!("{:?}", message);
+        println!("=======================================");
+        println!("NEW ==> [{:?}]", self.queue.len());
+        if self.last_call.elapsed() < Duration::new(1, 0) {
+            println!("COM ==> ADD");
+            self.queue.push(compound_msg.clone());
+        } else {
+            println!("COM ==> RESET");
+            self.reset();
+        }
+        println!("MSG ==> {}", compound_msg);
+        println!("END ==> [{:?}]", self.queue.len());
+    }
+}
+
 pub fn create_in_port_listener(uuid: uuid::Uuid, port: MidiInputPort, tx: &Sender<String>) {
     let port_shared = Arc::new(port);
     let tx = tx.clone();
@@ -36,19 +94,38 @@ pub fn create_in_port_listener(uuid: uuid::Uuid, port: MidiInputPort, tx: &Sende
         let port_name = midi_in.port_name(port);
         println!("Monitoring {}.", port_name.unwrap());
         let mut now = Instant::now();
+
+        let buffer = Buffer::new(uuid);
+
+        let test = Arc::new(Mutex::new(buffer));
+
+        // monitor buffer
+        let cloned_buffer = test.clone();
+        thread::spawn(move || loop {
+            thread::sleep(Duration::new(0, DEBOUNCE_RATE - 20000));
+            let buffer = &mut cloned_buffer.lock().unwrap();
+            let buffer_queue = &mut buffer.queue;
+
+            if buffer_queue.len() > 0 {
+                println!("[1] [{:?}] [{:?}]", buffer_queue.len(), buffer_queue.last());
+                buffer.reset();
+                let buffer_queue = &mut buffer.queue;
+                println!("[2] [{:?}] [{:?}]", buffer_queue.len(), buffer_queue.last());
+            }
+        });
+
+        // monitor midi
+        let cloned_buffer = test.clone();
         let _conn_in = midi_in.connect(
             port,
             "ConnIn",
             move |_stamp, message, _| {
-                if now.elapsed() > Duration::new(0, DEBOUNCE_RATE) {
-                    let compound_msg =
-                        format!("{}{}MIDI:{:?}", uuid, crate::MSG_SEPARATOR, message);
-                    tx.send(compound_msg).unwrap();
-                    now = Instant::now();
-                }
+                cloned_buffer.lock().unwrap().add(&tx, message);
+                now = debounce_message(uuid, now, &tx, message);
             },
             (),
         );
+
         loop {
             thread::sleep(Duration::from_millis(1000));
         }
