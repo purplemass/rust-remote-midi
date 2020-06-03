@@ -5,8 +5,8 @@ use std::thread;
 use chrono::{DateTime, Utc};
 use log::info;
 
-pub fn sleep() {
-    thread::sleep(::std::time::Duration::from_millis(1));
+pub fn sleep(ms: u64) {
+    thread::sleep(::std::time::Duration::from_millis(ms));
 }
 
 pub fn get_time() -> DateTime<Utc> {

@@ -2,7 +2,6 @@ extern crate chrono;
 extern crate midir;
 
 use std::env;
-use std::io::stdin;
 use std::process;
 
 use uuid::Uuid;
@@ -45,21 +44,9 @@ fn main() {
         midi::create_in_port_listener(uuid, in_port, &tx);
     }
 
-    println!("\nWrite a message or type \":q\" to exit:");
-
     loop {
-        let mut buff = String::new();
-        stdin()
-            .read_line(&mut buff)
-            .expect("reading from stdin failed");
-        let msg = buff.trim().to_string();
-        let compound_msg = format!("{}{}{}", uuid, MSG_SEPARATOR, msg);
-        if msg == ":q" || tx.send(compound_msg).is_err() {
-            break;
-        }
+        utils::sleep(1000);
     }
-
-    println!("\nExiting...\n");
 }
 
 fn get_vars() -> (bool, String, String) {

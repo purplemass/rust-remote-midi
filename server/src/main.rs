@@ -57,7 +57,7 @@ fn main() {
                     }
                 }
 
-                sleep();
+                sleep(1);
             });
         }
 
@@ -73,7 +73,7 @@ fn main() {
                 .collect::<Vec<_>>();
         }
 
-        sleep();
+        sleep(1);
     }
 }
 
