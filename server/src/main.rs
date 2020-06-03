@@ -15,7 +15,7 @@ use utils::{get_time, print_log, setup_logger, sleep};
 const LOCAL: &str = "0.0.0.0:6000";
 const LOG_FILE: &str = "/tmp/server.log";
 const MSG_SEPARATOR: char = '|';
-const MSG_SIZE: usize = 256;
+const MSG_SIZE: usize = 64;
 
 fn main() {
     match setup_logger() {

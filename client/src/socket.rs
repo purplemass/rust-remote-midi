@@ -12,7 +12,7 @@ use uuid::Uuid;
 use super::midi;
 use super::utils;
 
-const MSG_SIZE: usize = 256;
+const MSG_SIZE: usize = 64;
 
 pub fn check_tcp_stream(
     uuid: Uuid,
