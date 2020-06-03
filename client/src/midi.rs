@@ -2,14 +2,15 @@ use std::error::Error;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use midir::os::unix::VirtualOutput;
 use midir::{Ignore, MidiInput, MidiInputPort, MidiOutput, MidiOutputConnection, MidiOutputPort};
 
 use super::utils::print_separator;
 
-const BUFFER_TIME: Duration = Duration::from_millis(1000);
+mod buffer;
+
 const MONITOR_DELAY: Duration = Duration::from_millis(100);
 
 pub fn create_midi_input() -> MidiInput {
@@ -28,37 +29,6 @@ pub fn create_virtual_port(midi_port: &str) -> Arc<Mutex<MidiOutputConnection>> 
     Arc::new(Mutex::new(conn_out))
 }
 
-struct Buffer {
-    uuid: uuid::Uuid,
-    queue: Vec<String>,
-    last_call: Instant,
-}
-
-impl Buffer {
-    fn new(uuid: uuid::Uuid) -> Buffer {
-        Buffer {
-            uuid,
-            queue: Vec::new(),
-            last_call: Instant::now(),
-        }
-    }
-
-    fn reset(&mut self) {
-        self.last_call = Instant::now();
-        self.queue = Vec::new();
-    }
-
-    fn add(&mut self, tx: &Sender<String>, message: &[u8]) {
-        let compound_msg = format!("{}{}MIDI:{:?}", self.uuid, crate::MSG_SEPARATOR, message);
-        if self.last_call.elapsed() < BUFFER_TIME {
-            self.queue.push(compound_msg.clone());
-        } else {
-            tx.send(compound_msg).unwrap();
-            self.reset();
-        }
-    }
-}
-
 pub fn create_in_port_listener(uuid: uuid::Uuid, port: MidiInputPort, tx: &Sender<String>) {
     let port_shared = Arc::new(port);
     let tx_clone1 = tx.clone();
@@ -67,7 +37,7 @@ pub fn create_in_port_listener(uuid: uuid::Uuid, port: MidiInputPort, tx: &Sende
     thread::spawn(move || {
         let midi_in = create_midi_input();
         let port_name = midi_in.port_name(&port_shared);
-        let buffer = Arc::new(Mutex::new(Buffer::new(uuid)));
+        let buffer = Arc::new(Mutex::new(buffer::Buffer::new(uuid)));
 
         println!("Monitoring {}.", port_name.unwrap());
 
