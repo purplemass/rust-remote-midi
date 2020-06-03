@@ -8,7 +8,6 @@ pub struct Buffer {
     pub queue: Vec<String>,
     uuid: uuid::Uuid,
     last_call: Instant,
-    last_message: String,
 }
 
 impl Buffer {
@@ -17,7 +16,6 @@ impl Buffer {
             uuid,
             queue: Vec::new(),
             last_call: Instant::now(),
-            last_message: String::from(""),
         }
     }
 
@@ -28,14 +26,11 @@ impl Buffer {
 
     pub fn add(&mut self, tx: &Sender<String>, message: &[u8]) {
         let compound_msg = format!("{}{}MIDI:{:?}", self.uuid, crate::MSG_SEPARATOR, message);
-        if compound_msg != self.last_message {
-            self.last_message = compound_msg.clone();
-            if self.last_call.elapsed() < BUFFER_TIME && !self.is_a_note(message) {
-                self.queue.push(compound_msg.clone());
-            } else {
-                tx.send(compound_msg).unwrap();
-                self.reset();
-            }
+        if self.last_call.elapsed() < BUFFER_TIME && !self.is_a_note(message) {
+            self.queue.push(compound_msg.clone());
+        } else {
+            tx.send(compound_msg).unwrap();
+            self.reset();
         }
     }
 
