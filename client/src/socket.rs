@@ -16,7 +16,7 @@ const MSG_SIZE: usize = 64;
 
 pub fn check_tcp_stream(
     uuid: Uuid,
-    server_address: &str,
+    server_address: String,
     conn_out: Arc<Mutex<midir::MidiOutputConnection>>,
 ) -> Sender<String> {
     let mut client = TcpStream::connect(server_address).expect("Stream failed to connect");

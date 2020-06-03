@@ -39,7 +39,7 @@ fn main() {
 
     let conn_out_shared = midi::create_virtual_port(midi_port);
 
-    let tx = socket::check_tcp_stream(uuid, &server_address, conn_out_shared);
+    let tx = socket::check_tcp_stream(uuid, server_address.to_string(), conn_out_shared);
 
     for in_port in in_ports {
         midi::create_in_port_listener(uuid, in_port, &tx);
