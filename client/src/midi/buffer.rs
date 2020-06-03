@@ -1,7 +1,7 @@
 use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
 
-const BUFFER_TIME: Duration = Duration::from_millis(1000);
+const BUFFER_TIME: Duration = Duration::from_millis(100);
 const NOTES: [u8; 3] = [128, 144, 192];
 
 pub struct Buffer {

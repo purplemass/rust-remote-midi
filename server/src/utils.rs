@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 use log::info;
 
 pub fn sleep() {
-    thread::sleep(::std::time::Duration::from_millis(100));
+    thread::sleep(::std::time::Duration::from_millis(1));
 }
 
 pub fn get_time() -> DateTime<Utc> {
