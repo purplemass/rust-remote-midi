@@ -5,7 +5,6 @@ use std::net::TcpStream;
 use std::sync::mpsc::{self, Sender, TryRecvError};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
 
 use uuid::Uuid;
 
@@ -68,7 +67,7 @@ pub fn check_tcp_stream(
             Err(TryRecvError::Disconnected) => break,
         }
 
-        thread::sleep(Duration::from_millis(1));
+        utils::sleep(1);
     });
 
     tx

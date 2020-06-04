@@ -2,16 +2,15 @@ use std::error::Error;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
 
 use midir::os::unix::VirtualOutput;
 use midir::{Ignore, MidiInput, MidiInputPort, MidiOutput, MidiOutputConnection, MidiOutputPort};
 
-use super::utils::print_separator;
+use super::utils;
 
 mod buffer;
 
-const MONITOR_DELAY: Duration = Duration::from_millis(100);
+const MONITOR_DELAY: u64 = 100;
 
 pub fn create_midi_input() -> MidiInput {
     let mut midi_in = MidiInput::new("MidiInput").unwrap();
@@ -44,7 +43,7 @@ pub fn create_in_port_listener(uuid: uuid::Uuid, port: MidiInputPort, tx: &Sende
         // monitor buffer
         let cloned_buffer = buffer.clone();
         thread::spawn(move || loop {
-            thread::sleep(MONITOR_DELAY);
+            utils::sleep(MONITOR_DELAY);
             let buffer = &mut cloned_buffer.lock().unwrap();
             let buffer_queue = &mut buffer.queue;
 
@@ -67,7 +66,7 @@ pub fn create_in_port_listener(uuid: uuid::Uuid, port: MidiInputPort, tx: &Sende
         );
 
         loop {
-            thread::sleep(Duration::from_millis(1000));
+            utils::sleep(1000);
         }
     });
 }
@@ -104,7 +103,7 @@ pub fn get_ports(
     if in_ports.is_empty() {
         println!("No input ports found");
     }
-    print_separator();
+    utils::print_separator();
     for port in midi_out.ports() {
         if check_valid_port(midi_out.port_name(&port).unwrap()) {
             println!("Output port:\t{}", midi_out.port_name(&port).unwrap());
@@ -114,7 +113,7 @@ pub fn get_ports(
     if out_ports.is_empty() {
         println!("No output ports found");
     }
-    print_separator();
+    utils::print_separator();
 
     Ok((in_ports, out_ports))
 }
