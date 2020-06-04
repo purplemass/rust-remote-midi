@@ -37,7 +37,15 @@ fn main() {
         }
     };
 
-    let (socket_handle, tx) = socket::check_tcp_stream(uuid, &server_address, midi_port);
+    let (socket_handle, tx) = match socket::check_tcp_stream(uuid, &server_address, midi_port) {
+        Err(err) => {
+            println!("\nFailed to connect.");
+            println!("Error: {}", err);
+            restart(5, &server_address, &midi_port_number);
+            panic!("No server");
+        }
+        Ok((socket_handle, tx)) => (socket_handle, tx),
+    };
 
     for in_port in in_ports {
         midi::create_in_port_listener(uuid, in_port, &tx);

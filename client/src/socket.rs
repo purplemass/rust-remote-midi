@@ -17,13 +17,13 @@ pub fn check_tcp_stream(
     uuid: Uuid,
     server_address: &str,
     midi_port: &str,
-) -> (thread::JoinHandle<()>, Sender<String>) {
+) -> Result<(thread::JoinHandle<()>, Sender<String>), Box<dyn std::error::Error>> {
     let conn_out = midi::create_virtual_port(&midi_port);
     let server_address = format!("{}:{}", server_address, crate::SERVER_PORT);
-    let mut client = TcpStream::connect(server_address).expect("Stream failed to connect");
+    let mut client = TcpStream::connect(server_address)?;
     client
         .set_nonblocking(true)
-        .expect("failed to initiate non-blocking");
+        .expect("Failed to initiate non-blocking");
 
     let (tx, rx) = mpsc::channel::<String>();
 
@@ -43,8 +43,9 @@ pub fn check_tcp_stream(
                 }
             }
             Err(ref err) if err.kind() == ErrorKind::WouldBlock => (),
-            Err(_) => {
-                utils::print_log("connection severed");
+            Err(err) => {
+                println!("\nConnection severed");
+                println!("Error: {}", err);
                 break;
             }
         }
@@ -54,7 +55,7 @@ pub fn check_tcp_stream(
             Ok(msg) => {
                 let mut buff = msg.clone().into_bytes();
                 buff.resize(MSG_SIZE, 0);
-                client.write_all(&buff).expect("writing to socket failed");
+                client.write_all(&buff).expect("Writing to socket failed");
                 utils::print_log(&format!("> {}", utils::get_msg(&msg)).to_string());
             }
             Err(TryRecvError::Empty) => (),
@@ -64,7 +65,7 @@ pub fn check_tcp_stream(
         utils::sleep(1);
     });
 
-    (handle, tx)
+    Ok((handle, tx))
 }
 
 fn parse_message(msg: &str) -> (u8, u8, u8) {
