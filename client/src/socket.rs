@@ -3,6 +3,7 @@ extern crate midir;
 use std::io::{ErrorKind, Read, Write};
 use std::net::TcpStream;
 use std::sync::mpsc::{self, Sender, TryRecvError};
+use std::time::Duration;
 // use std::sync::{Arc, Mutex};
 use std::thread;
 
@@ -12,6 +13,7 @@ use super::midi;
 use super::utils;
 
 const MSG_SIZE: usize = 64;
+const TIMEOUT: u64 = 3;
 
 pub fn check_tcp_stream(
     uuid: Uuid,
@@ -21,6 +23,7 @@ pub fn check_tcp_stream(
     let conn_out = midi::create_virtual_port(&midi_port);
     let server_address = format!("{}:{}", server_address, crate::SERVER_PORT);
     let mut client = TcpStream::connect(server_address)?;
+    let _ = client.set_read_timeout(Some(Duration::new(TIMEOUT, 0)))?;
     client
         .set_nonblocking(true)
         .expect("Failed to initiate non-blocking");

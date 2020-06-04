@@ -38,13 +38,16 @@ fn main() {
     };
 
     let (socket_handle, tx) = match socket::check_tcp_stream(uuid, &server_address, midi_port) {
+        Ok((socket_handle, tx)) => {
+            println!("Connected to server.");
+            (socket_handle, tx)
+        }
         Err(err) => {
             println!("\nFailed to connect.");
             println!("Error: {}", err);
             restart(5, &server_address, &midi_port_number);
             panic!("No server");
         }
-        Ok((socket_handle, tx)) => (socket_handle, tx),
     };
 
     for in_port in in_ports {
