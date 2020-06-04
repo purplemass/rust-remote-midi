@@ -10,7 +10,7 @@ use super::utils;
 
 mod buffer;
 
-const MONITOR_DELAY: u64 = 100;
+const BUFFER_MONITOR_DELAY: u64 = 10;
 
 pub fn create_midi_input() -> MidiInput {
     let mut midi_in = MidiInput::new("MidiInput").unwrap();
@@ -43,7 +43,7 @@ pub fn create_in_port_listener(uuid: uuid::Uuid, port: MidiInputPort, tx: &Sende
         // monitor buffer
         let cloned_buffer = buffer.clone();
         thread::spawn(move || loop {
-            utils::sleep(MONITOR_DELAY);
+            utils::sleep(BUFFER_MONITOR_DELAY);
             let buffer = &mut cloned_buffer.lock().unwrap();
             let buffer_queue = &mut buffer.queue;
 
