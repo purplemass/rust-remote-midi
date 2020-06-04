@@ -3,7 +3,7 @@ extern crate midir;
 use std::io::{ErrorKind, Read, Write};
 use std::net::TcpStream;
 use std::sync::mpsc::{self, Sender, TryRecvError};
-use std::sync::{Arc, Mutex};
+// use std::sync::{Arc, Mutex};
 use std::thread;
 
 use uuid::Uuid;
@@ -15,9 +15,12 @@ const MSG_SIZE: usize = 64;
 
 pub fn check_tcp_stream(
     uuid: Uuid,
-    server_address: String,
-    conn_out: Arc<Mutex<midir::MidiOutputConnection>>,
-) -> Sender<String> {
+    server_address: &str,
+    midi_port: &str,
+    // conn_out: Arc<Mutex<midir::MidiOutputConnection>>,
+) -> (thread::JoinHandle<()>, Sender<String>) {
+    let conn_out = midi::create_virtual_port(&midi_port);
+    let server_address = format!("{}:{}", server_address, crate::SERVER_PORT);
     let mut client = TcpStream::connect(server_address).expect("Stream failed to connect");
     client
         .set_nonblocking(true)
@@ -25,7 +28,7 @@ pub fn check_tcp_stream(
 
     let (tx, rx) = mpsc::channel::<String>();
 
-    thread::spawn(move || loop {
+    let handle = thread::spawn(move || loop {
         let mut buff = vec![0; MSG_SIZE];
 
         // receive
@@ -70,5 +73,5 @@ pub fn check_tcp_stream(
         utils::sleep(1);
     });
 
-    tx
+    (handle, tx)
 }

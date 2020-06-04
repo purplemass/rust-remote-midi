@@ -2,7 +2,8 @@ extern crate chrono;
 extern crate midir;
 
 use std::env;
-use std::process;
+use std::os::unix::process::CommandExt;
+use std::process::{exit, Command};
 
 use uuid::Uuid;
 
@@ -17,7 +18,7 @@ const MSG_SEPARATOR: char = '|';
 fn main() {
     let (error, server_address, midi_port_number) = get_vars();
     if error {
-        process::exit(1)
+        exit(1)
     }
 
     let uuid = Uuid::new_v4();
@@ -36,27 +37,30 @@ fn main() {
         }
     };
 
-    let conn_out_shared = midi::create_virtual_port(midi_port);
-
-    let tx = socket::check_tcp_stream(uuid, server_address.to_string(), conn_out_shared);
+    let (socket_handle, tx) = socket::check_tcp_stream(uuid, &server_address, midi_port);
 
     for in_port in in_ports {
         midi::create_in_port_listener(uuid, in_port, &tx);
     }
 
-    loop {
-        utils::sleep(1000);
-    }
+    let _ = socket_handle.join();
+
+    restart(3, &server_address, &midi_port_number);
+}
+
+fn restart(seconds: u64, server_address: &str, midi_port_number: &str) {
+    println!("Restart in {} seconds", seconds);
+    utils::sleep(1000 * seconds);
+    let _ = Command::new("clear").spawn();
+    Command::new("./client")
+        .args(&[&server_address, &midi_port_number])
+        .exec();
 }
 
 fn get_vars() -> (bool, String, String) {
     let args: Vec<String> = env::args().collect();
     match args.len() {
-        3 => (
-            false,
-            format!("{}:{}", args[1], SERVER_PORT),
-            args[2].to_string(),
-        ),
+        3 => (false, args[1].to_string(), args[2].to_string()),
         _ => {
             println!("{:☠<52}", "");
             println!("Error:\t\tIncorrect/missing arguments");
@@ -71,7 +75,7 @@ fn get_vars() -> (bool, String, String) {
 fn print_welcome(uuid: Uuid, server_address: &str, midi_port: &str) {
     utils::print_separator();
     println!("UUID:\t\t{}", uuid);
-    println!("Server:\t\t{}", server_address);
+    println!("Server:\t\t{}:{}", server_address, SERVER_PORT);
     println!("Virtual port:\t{}", midi_port);
     utils::print_separator();
 }
