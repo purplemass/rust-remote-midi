@@ -16,10 +16,13 @@ const MIDI_OUTPORT_ID: &str = "REMOTE_MIDI";
 const MSG_SEPARATOR: char = '|';
 
 fn main() {
-    let (error, server_address, midi_port_number) = get_vars();
-    if error {
-        exit(1)
-    }
+    let (server_address, midi_port_number) = match get_vars() {
+        Some((server_address, midi_port_number)) => (server_address, midi_port_number),
+        None => {
+            print_error();
+            exit(1)
+        }
+    };
 
     let uuid = Uuid::new_v4();
     print_welcome(uuid, &server_address);
@@ -84,18 +87,11 @@ fn restart(seconds: u64, server_address: &str, midi_port_number: &str) {
         .exec();
 }
 
-fn get_vars() -> (bool, String, String) {
+fn get_vars() -> Option<(String, String)> {
     let args: Vec<String> = env::args().collect();
     match args.len() {
-        3 => (false, args[1].to_string(), args[2].to_string()),
-        _ => {
-            println!("{:☠<52}", "");
-            println!("Error:\t\tIncorrect/missing arguments");
-            println!("Arguments:\t<SERVER_IP_ADDRESS> <MIDI_PORT_NUMBER>");
-            println!("Example:\t./client 127.0.0.1 2");
-            println!("{:☠<52}", "");
-            (true, String::new(), String::new())
-        }
+        3 => Some((args[1].to_string(), args[2].to_string())),
+        _ => None,
     }
 }
 
@@ -104,4 +100,12 @@ fn print_welcome(uuid: Uuid, server_address: &str) {
     println!("UUID:\t\t{}", uuid);
     println!("Server:\t\t{}:{}", server_address, SERVER_PORT);
     utils::print_separator();
+}
+
+fn print_error() {
+    println!("{:☠<52}", "");
+    println!("Error:\t\tIncorrect/missing arguments");
+    println!("Arguments:\t<SERVER_IP_ADDRESS> <MIDI_PORT_NUMBER>");
+    println!("Example:\t./client 127.0.0.1 2");
+    println!("{:☠<52}", "");
 }
