@@ -22,10 +22,12 @@ pub fn create_midi_output() -> MidiOutput {
     MidiOutput::new("MidiOutput").unwrap()
 }
 
-pub fn create_virtual_port(midi_port: &str) -> Arc<Mutex<MidiOutputConnection>> {
-    let midi_out = MidiOutput::new("RemoteMidiOutput").unwrap();
-    let conn_out = midi_out.create_virtual(midi_port).unwrap();
-    Arc::new(Mutex::new(conn_out))
+pub fn create_virtual_port(midi_port: &str, midi_out: MidiOutput) -> MidiOutputConnection {
+    midi_out.create_virtual(midi_port).unwrap()
+}
+
+pub fn create_out_port(midi_port: &MidiOutputPort, midi_out: MidiOutput) -> MidiOutputConnection {
+    midi_out.connect(&midi_port, "midir-forward").unwrap()
 }
 
 pub fn create_in_port_listener(uuid: uuid::Uuid, port: MidiInputPort, tx: &Sender<String>) {
@@ -38,7 +40,7 @@ pub fn create_in_port_listener(uuid: uuid::Uuid, port: MidiInputPort, tx: &Sende
         let port_name = midi_in.port_name(&port_shared);
         let buffer = Arc::new(Mutex::new(buffer::Buffer::new(uuid)));
 
-        println!("Monitoring {}.", port_name.unwrap());
+        println!("Monitoring:\t{}", port_name.unwrap());
 
         // monitor buffer
         let cloned_buffer = buffer.clone();
@@ -78,13 +80,13 @@ pub fn send_midi_message(
     velocity: u8,
 ) {
     let mut conn_out_shared = conn_out.lock().unwrap();
-    let _ = conn_out_shared.send(&[note_msg, note, velocity]);
+    let _ = conn_out_shared
+        .send(&[note_msg, note, velocity])
+        .unwrap_or_else(|_| println!("Error sending mid"));
 }
 
 fn check_valid_port(port_name: String) -> bool {
-    !(port_name.contains(crate::MIDI_OUTPORT_ID)
-        || port_name.contains("Traktor Virtual Input")
-        || port_name.contains("Traktor Virtual Output"))
+    !(port_name.contains(crate::MIDI_OUTPORT_ID) || port_name.contains("Traktor Virtual Input"))
 }
 
 pub fn get_ports(
@@ -113,7 +115,6 @@ pub fn get_ports(
     if out_ports.is_empty() {
         println!("No output ports found");
     }
-    utils::print_separator();
 
     Ok((in_ports, out_ports))
 }

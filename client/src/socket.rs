@@ -3,9 +3,9 @@ extern crate midir;
 use std::io::{ErrorKind, Read, Write};
 use std::net::TcpStream;
 use std::sync::mpsc::{self, Sender, TryRecvError};
-use std::time::Duration;
-// use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex};
 use std::thread;
+use std::time::Duration;
 
 use uuid::Uuid;
 
@@ -18,9 +18,8 @@ const TIMEOUT: u64 = 3;
 pub fn check_tcp_stream(
     uuid: Uuid,
     server_address: &str,
-    midi_port: &str,
+    midi_out_conn: midir::MidiOutputConnection,
 ) -> Result<(thread::JoinHandle<()>, Sender<String>), Box<dyn std::error::Error>> {
-    let conn_out = midi::create_virtual_port(&midi_port);
     let server_address = format!("{}:{}", server_address, crate::SERVER_PORT);
     let mut client = TcpStream::connect(server_address)?;
     let _ = client.set_read_timeout(Some(Duration::new(TIMEOUT, 0)))?;
@@ -29,6 +28,7 @@ pub fn check_tcp_stream(
         .expect("Failed to initiate non-blocking");
 
     let (tx, rx) = mpsc::channel::<String>();
+    let midi_out_conn = Arc::new(Mutex::new(midi_out_conn));
 
     let handle = thread::spawn(move || loop {
         let mut buff = vec![0; MSG_SIZE];
@@ -42,7 +42,7 @@ pub fn check_tcp_stream(
                 if msg_vec[0] != uuid.to_string() {
                     utils::print_log(&format!("< {}", utils::get_msg(&msg)).to_string());
                     let (d1, d2, d3) = parse_message(msg_vec[1]);
-                    midi::send_midi_message(conn_out.clone(), d1, d2, d3)
+                    midi::send_midi_message(midi_out_conn.clone(), d1, d2, d3)
                 }
             }
             Err(ref err) if err.kind() == ErrorKind::WouldBlock => (),

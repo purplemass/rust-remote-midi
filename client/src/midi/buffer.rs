@@ -2,7 +2,7 @@ use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
 
 const BUFFER_TIME: Duration = Duration::from_millis(100);
-const NOTES: [u8; 3] = [128, 144, 192];
+const NOTES: [u8; 5] = [128, 142, 144, 158, 192];
 
 pub struct Buffer {
     pub queue: Vec<String>,

@@ -22,14 +22,13 @@ fn main() {
     }
 
     let uuid = Uuid::new_v4();
+    print_welcome(uuid, &server_address);
+
+    // create Midi in/out
     let midi_port = &format!("{}{}", MIDI_OUTPORT_ID, midi_port_number);
-
-    print_welcome(uuid, &server_address, &midi_port);
-
-    // create Midi in/out and virtual port
     let midi_in = midi::create_midi_input();
     let midi_out = midi::create_midi_output();
-    let (in_ports, _out_ports) = match midi::get_ports(&midi_in, &midi_out) {
+    let (in_ports, out_ports) = match midi::get_ports(&midi_in, &midi_out) {
         Ok((in_ports, out_ports)) => (in_ports, out_ports),
         Err(err) => {
             println!("Error: {}", err);
@@ -37,24 +36,41 @@ fn main() {
         }
     };
 
-    let (socket_handle, tx) = match socket::check_tcp_stream(uuid, &server_address, midi_port) {
+    // create midi out connection
+    let midi_out_conn;
+    if out_ports.len() > 0 {
+        let port = &out_ports[0];
+        println!("----> using:\t{}", midi_out.port_name(&port).unwrap());
+        midi_out_conn = midi::create_out_port(&port, midi_out);
+    } else {
+        let port = midi_port;
+        println!("----> using:\t{}", port);
+        midi_out_conn = midi::create_virtual_port(&port, midi_out);
+    }
+
+    utils::print_separator();
+
+    // create tcp socket
+    let (socket_handle, tx) = match socket::check_tcp_stream(uuid, &server_address, midi_out_conn) {
         Ok((socket_handle, tx)) => {
-            println!("Connected to server.");
+            println!("Connected to server");
             (socket_handle, tx)
         }
         Err(err) => {
-            println!("\nFailed to connect.");
+            println!("\nFailed to connect");
             println!("Error: {}", err);
             restart(5, &server_address, &midi_port_number);
             panic!("No server");
         }
     };
 
+    utils::print_separator();
+
     for in_port in in_ports {
         midi::create_in_port_listener(uuid, in_port, &tx);
     }
 
-    let _ = socket_handle.join();
+    socket_handle.join().unwrap();
 
     restart(3, &server_address, &midi_port_number);
 }
@@ -83,10 +99,9 @@ fn get_vars() -> (bool, String, String) {
     }
 }
 
-fn print_welcome(uuid: Uuid, server_address: &str, midi_port: &str) {
+fn print_welcome(uuid: Uuid, server_address: &str) {
     utils::print_separator();
     println!("UUID:\t\t{}", uuid);
     println!("Server:\t\t{}:{}", server_address, SERVER_PORT);
-    println!("Virtual port:\t{}", midi_port);
     utils::print_separator();
 }
