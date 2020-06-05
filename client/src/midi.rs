@@ -27,7 +27,7 @@ pub fn create_virtual_port(midi_port: &str, midi_out: MidiOutput) -> MidiOutputC
 }
 
 pub fn create_out_port(midi_port: &MidiOutputPort, midi_out: MidiOutput) -> MidiOutputConnection {
-    midi_out.connect(&midi_port, "midir-forward").unwrap()
+    midi_out.connect(&midi_port, "MidiOutput").unwrap()
 }
 
 pub fn create_in_port_listener(uuid: uuid::Uuid, port: MidiInputPort, tx: &Sender<String>) {
@@ -86,7 +86,7 @@ pub fn send_midi_message(
 }
 
 fn check_valid_port(port_name: String) -> bool {
-    !(port_name.contains(crate::MIDI_OUTPORT_ID) || port_name.contains("Traktor Virtual Input"))
+    !(port_name.contains(&crate::VIRTUAL_PORT_NAME) || port_name.contains("Traktor Virtual Input"))
 }
 
 pub fn get_ports(

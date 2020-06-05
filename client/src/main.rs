@@ -12,12 +12,12 @@ mod socket;
 mod utils;
 
 const SERVER_PORT: &str = "6000";
-const MIDI_OUTPORT_ID: &str = "REMOTE_MIDI";
+const VIRTUAL_PORT_NAME: &str = "REMOTE-MIDI";
 const MSG_SEPARATOR: char = '|';
 
 fn main() {
-    let (server_address, midi_port_number) = match get_vars() {
-        Some((server_address, midi_port_number)) => (server_address, midi_port_number),
+    let (server_address, midi_port_id) = match get_vars() {
+        Some((server_address, midi_port_id)) => (server_address, midi_port_id),
         None => {
             print_error();
             exit(1)
@@ -28,7 +28,6 @@ fn main() {
     print_welcome(uuid, &server_address);
 
     // create Midi in/out
-    let midi_port = &format!("{}{}", MIDI_OUTPORT_ID, midi_port_number);
     let midi_in = midi::create_midi_input();
     let midi_out = midi::create_midi_output();
     let (in_ports, out_ports) = match midi::get_ports(&midi_in, &midi_out) {
@@ -41,12 +40,15 @@ fn main() {
 
     // create midi out connection
     let midi_out_conn;
-    if out_ports.len() > 0 {
+    if out_ports.len() > 100 {
         let port = &out_ports[0];
         println!("----> using:\t{}", midi_out.port_name(&port).unwrap());
         midi_out_conn = midi::create_out_port(&port, midi_out);
     } else {
-        let port = midi_port;
+        let port: String = match midi_port_id.is_empty() {
+            true => VIRTUAL_PORT_NAME.to_string(),
+            false => format!("{}-{}", VIRTUAL_PORT_NAME, midi_port_id),
+        };
         println!("----> using:\t{}", port);
         midi_out_conn = midi::create_virtual_port(&port, midi_out);
     }
@@ -62,7 +64,7 @@ fn main() {
         Err(err) => {
             println!("\nFailed to connect");
             println!("Error: {}", err);
-            restart(5, &server_address, &midi_port_number);
+            restart(5, &server_address, &midi_port_id);
             panic!("No server");
         }
     };
@@ -75,21 +77,22 @@ fn main() {
 
     socket_handle.join().unwrap();
 
-    restart(3, &server_address, &midi_port_number);
+    restart(3, &server_address, &midi_port_id);
 }
 
-fn restart(seconds: u64, server_address: &str, midi_port_number: &str) {
+fn restart(seconds: u64, server_address: &str, midi_port_id: &str) {
     println!("Restart in {} seconds", seconds);
     utils::sleep(1000 * seconds);
     let _ = Command::new("clear").spawn();
     Command::new("./client")
-        .args(&[&server_address, &midi_port_number])
+        .args(&[&server_address, &midi_port_id])
         .exec();
 }
 
 fn get_vars() -> Option<(String, String)> {
     let args: Vec<String> = env::args().collect();
     match args.len() {
+        2 => Some((args[1].to_string(), "".to_string())),
         3 => Some((args[1].to_string(), args[2].to_string())),
         _ => None,
     }
