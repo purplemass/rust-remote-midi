@@ -25,7 +25,7 @@ impl Buffer {
     }
 
     pub fn add(&mut self, tx: &Sender<String>, message: &[u8]) {
-        let compound_msg = format!("{}{}MIDI:{:?}", self.uuid, crate::MSG_SEPARATOR, message);
+        let compound_msg = format!("{}{}{:?}", self.uuid, crate::MSG_SEPARATOR, message);
         if self.last_call.elapsed() < BUFFER_TIME && !self.is_a_note(message) {
             self.queue.push(compound_msg.clone());
         } else {

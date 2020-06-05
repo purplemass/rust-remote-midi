@@ -40,7 +40,7 @@ pub fn check_tcp_stream(
                 let msg = String::from_utf8(msg).expect("Invalid utf8 message");
                 let msg_vec: Vec<&str> = msg.split(crate::MSG_SEPARATOR).collect();
                 if msg_vec[0] != uuid.to_string() {
-                    utils::print_log(&format!("< {}", utils::get_msg(&msg)).to_string());
+                    utils::print_log(&format!("< {}", utils::get_msg(&msg)));
                     let (d1, d2, d3) = parse_message(msg_vec[1]);
                     midi::send_midi_message(midi_out_conn.clone(), d1, d2, d3)
                 }
@@ -59,7 +59,7 @@ pub fn check_tcp_stream(
                 let mut buff = msg.clone().into_bytes();
                 buff.resize(MSG_SIZE, 0);
                 client.write_all(&buff).expect("Writing to socket failed");
-                utils::print_log(&format!("> {}", utils::get_msg(&msg)).to_string());
+                utils::print_log(&format!("> {}", utils::get_msg(&msg)));
             }
             Err(TryRecvError::Empty) => (),
             Err(TryRecvError::Disconnected) => break,
@@ -72,11 +72,11 @@ pub fn check_tcp_stream(
 }
 
 fn parse_message(msg: &str) -> (u8, u8, u8) {
-    let mut msg_midi: Vec<&str> = msg.split('[').collect();
-    msg_midi = msg_midi[1].split(']').collect();
-    msg_midi = msg_midi[0].split(',').collect();
-    let d1: u8 = msg_midi[0].trim().parse().unwrap();
-    let d2: u8 = msg_midi[1].trim().parse().unwrap();
-    let d3: u8 = msg_midi[2].trim().parse().unwrap();
+    let mut msg_vec: Vec<&str> = msg.split('[').collect();
+    msg_vec = msg_vec[1].split(']').collect();
+    msg_vec = msg_vec[0].split(',').collect();
+    let d1: u8 = msg_vec[0].trim().parse().unwrap();
+    let d2: u8 = msg_vec[1].trim().parse().unwrap();
+    let d3: u8 = msg_vec[2].trim().parse().unwrap();
     (d1, d2, d3)
 }
