@@ -2,8 +2,7 @@ extern crate chrono;
 extern crate midir;
 
 use std::env;
-use std::os::unix::process::CommandExt;
-use std::process::{exit, Command};
+use std::process::exit;
 
 use uuid::Uuid;
 
@@ -16,7 +15,7 @@ const VIRTUAL_PORT_NAME: &str = "REMOTE-MIDI";
 const MSG_SEPARATOR: char = '|';
 
 fn main() {
-    let (server_address, midi_port_id) = match get_vars() {
+    let (server_address, _midi_port_id) = match get_vars() {
         Some((server_address, midi_port_id)) => (server_address, midi_port_id),
         None => {
             print_error();
@@ -40,17 +39,12 @@ fn main() {
 
     // create midi out connection
     let midi_out_conn;
-    if out_ports.len() > 100 {
+    if out_ports.len() == 0 {
+        panic!("No MIDI devices found")
+    } else {
         let port = &out_ports[0];
         println!("----> using:\t{}", midi_out.port_name(&port).unwrap());
         midi_out_conn = midi::create_out_port(&port, midi_out);
-    } else {
-        let port: String = match midi_port_id.is_empty() {
-            true => VIRTUAL_PORT_NAME.to_string(),
-            false => format!("{}-{}", VIRTUAL_PORT_NAME, midi_port_id),
-        };
-        println!("----> using:\t{}", port);
-        midi_out_conn = midi::create_virtual_port(&port, midi_out);
     }
 
     utils::print_separator();
@@ -64,7 +58,6 @@ fn main() {
         Err(err) => {
             println!("\nFailed to connect");
             println!("Error: {}", err);
-            restart(5, &server_address, &midi_port_id);
             panic!("No server");
         }
     };
@@ -76,17 +69,6 @@ fn main() {
     }
 
     socket_handle.join().unwrap();
-
-    restart(3, &server_address, &midi_port_id);
-}
-
-fn restart(seconds: u64, server_address: &str, midi_port_id: &str) {
-    println!("Restart in {} seconds", seconds);
-    utils::sleep(1000 * seconds);
-    let _ = Command::new("clear").spawn();
-    Command::new("./client")
-        .args(&[&server_address, &midi_port_id])
-        .exec();
 }
 
 fn get_vars() -> Option<(String, String)> {

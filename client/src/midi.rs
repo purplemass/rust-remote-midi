@@ -3,7 +3,7 @@ use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use midir::os::unix::VirtualOutput;
+// use midir::os::unix::VirtualOutput;
 use midir::{Ignore, MidiInput, MidiInputPort, MidiOutput, MidiOutputConnection, MidiOutputPort};
 
 use super::utils;
@@ -22,9 +22,9 @@ pub fn create_midi_output() -> MidiOutput {
     MidiOutput::new("MidiOutput").unwrap()
 }
 
-pub fn create_virtual_port(midi_port: &str, midi_out: MidiOutput) -> MidiOutputConnection {
-    midi_out.create_virtual(midi_port).unwrap()
-}
+// pub fn create_virtual_port(midi_port: &str, midi_out: MidiOutput) -> MidiOutputConnection {
+//     midi_out.create_virtual(midi_port).unwrap()
+// }
 
 pub fn create_out_port(midi_port: &MidiOutputPort, midi_out: MidiOutput) -> MidiOutputConnection {
     midi_out.connect(&midi_port, "MidiOutput").unwrap()
