@@ -15,8 +15,8 @@ const VIRTUAL_PORT_NAME: &str = "REMOTE-MIDI";
 const MSG_SEPARATOR: char = '|';
 
 fn main() {
-    let (server_address, _midi_port_id) = match get_vars() {
-        Some((server_address, midi_port_id)) => (server_address, midi_port_id),
+    let (server_address, midi_device_num) = match get_vars() {
+        Some((server_address, midi_device_num)) => (server_address, midi_device_num),
         None => {
             print_error();
             exit(1)
@@ -38,14 +38,17 @@ fn main() {
     };
 
     // create midi out connection
-    let midi_out_conn;
+    let which: usize = midi_device_num.parse().unwrap();
     if out_ports.len() == 0 {
         panic!("No MIDI devices found")
-    } else {
-        let port = &out_ports[0];
-        println!("----> using:\t{}", midi_out.port_name(&port).unwrap());
-        midi_out_conn = midi::create_out_port(&port, midi_out);
     }
+    if which > out_ports.len() {
+        panic!("You cannot pick MIDI device [{}]", which)
+    }
+
+    let port = &out_ports[which];
+    println!("----> using:\t{}", midi_out.port_name(&port).unwrap());
+    let midi_out_conn = midi::create_out_port(&port, midi_out);
 
     utils::print_separator();
 
@@ -74,7 +77,6 @@ fn main() {
 fn get_vars() -> Option<(String, String)> {
     let args: Vec<String> = env::args().collect();
     match args.len() {
-        2 => Some((args[1].to_string(), "".to_string())),
         3 => Some((args[1].to_string(), args[2].to_string())),
         _ => None,
     }
@@ -90,7 +92,7 @@ fn print_welcome(uuid: Uuid, server_address: &str) {
 fn print_error() {
     println!("{:☠<52}", "");
     println!("Error:\t\tIncorrect/missing arguments");
-    println!("Arguments:\t<SERVER_IP_ADDRESS> <MIDI_PORT_NUMBER>");
+    println!("Arguments:\t<SERVER_IP_ADDRESS> <MIDI_DEVICE_ID>");
     println!("Example:\t./client 127.0.0.1 2");
     println!("{:☠<52}", "");
 }

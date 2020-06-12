@@ -86,7 +86,8 @@ pub fn send_midi_message(
 }
 
 fn check_valid_port(port_name: String) -> bool {
-    !(port_name.contains(&crate::VIRTUAL_PORT_NAME) || port_name.contains("Traktor Virtual Input"))
+    !(port_name.contains(&crate::VIRTUAL_PORT_NAME))
+    // || port_name.contains("Traktor Virtual Input2"))
 }
 
 pub fn get_ports(
