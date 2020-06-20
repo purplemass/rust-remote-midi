@@ -2,7 +2,7 @@ extern crate midir;
 
 use std::io::{ErrorKind, Read, Write};
 use std::net::TcpStream;
-use std::sync::mpsc::{self, Sender, TryRecvError};
+use std::sync::mpsc::{Receiver, TryRecvError};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -19,7 +19,8 @@ pub fn check_tcp_stream(
     uuid: Uuid,
     server_address: &str,
     midi_out_conn: midir::MidiOutputConnection,
-) -> Result<(thread::JoinHandle<()>, Sender<String>), Box<dyn std::error::Error>> {
+    rx: Receiver<String>,
+) -> Result<thread::JoinHandle<()>, Box<dyn std::error::Error>> {
     let server_address = format!("{}:{}", server_address, crate::SERVER_PORT);
     let mut client = TcpStream::connect(server_address)?;
     let _ = client.set_read_timeout(Some(Duration::new(TIMEOUT, 0)))?;
@@ -27,7 +28,6 @@ pub fn check_tcp_stream(
         .set_nonblocking(true)
         .expect("Failed to initiate non-blocking");
 
-    let (tx, rx) = mpsc::channel::<String>();
     let midi_out_conn = Arc::new(Mutex::new(midi_out_conn));
 
     let handle = thread::spawn(move || loop {
@@ -68,7 +68,7 @@ pub fn check_tcp_stream(
         utils::sleep(1);
     });
 
-    Ok((handle, tx))
+    Ok(handle)
 }
 
 fn parse_message(msg: &str) -> (u8, u8, u8) {

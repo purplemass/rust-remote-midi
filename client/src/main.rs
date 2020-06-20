@@ -3,6 +3,7 @@ extern crate midir;
 
 use std::env;
 use std::process::exit;
+use std::sync::mpsc;
 
 use uuid::Uuid;
 
@@ -52,11 +53,13 @@ fn main() {
 
     utils::print_separator();
 
+    let (tx, rx) = mpsc::channel::<String>();
+
     // create tcp socket
-    let (socket_handle, tx) = match socket::check_tcp_stream(uuid, &server_address, midi_out_conn) {
-        Ok((socket_handle, tx)) => {
+    let socket_handle = match socket::check_tcp_stream(uuid, &server_address, midi_out_conn, rx) {
+        Ok(socket_handle) => {
             println!("Connected to server");
-            (socket_handle, tx)
+            socket_handle
         }
         Err(err) => {
             println!("\nFailed to connect");
