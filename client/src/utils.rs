@@ -8,7 +8,10 @@ pub fn sleep(ms: u64) {
 
 pub fn get_msg(msg: &str) -> &str {
     let msg_vec: Vec<&str> = msg.split(crate::MSG_SEPARATOR).collect();
-    msg_vec[1]
+    if msg_vec.len() > 1 {
+        return msg_vec[1];
+    };
+    msg
 }
 
 pub fn print_log(msg: &str) {

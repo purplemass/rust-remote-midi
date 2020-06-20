@@ -14,16 +14,15 @@ mod socket;
 mod utils;
 
 const SERVER_PORT: &str = "6000";
-const VIRTUAL_PORT_NAME: &str = "REMOTE-MIDI";
 const MSG_SEPARATOR: char = '|';
 
 fn main() {
     let midi_in = Arc::new(midi::create_midi_input());
-    run(Arc::clone(&midi_in));
-    // loop {
-    //     run(Arc::clone(&midi_in));
-    //     utils::sleep(2000);
-    // }
+    loop {
+        run(Arc::clone(&midi_in));
+        println!("{:☠<52}", "");
+        utils::sleep(1000);
+    }
 }
 
 fn run(midi_in: Arc<midir::MidiInput>) {
@@ -81,11 +80,19 @@ fn run(midi_in: Arc<midir::MidiInput>) {
 
     utils::print_separator();
 
+    let mut senders: Vec<std::sync::mpsc::Sender<String>> = vec![];
     for in_port in in_ports {
-        midi::create_in_port_listener(uuid, in_port, &tx);
+        let (_tx, _rx) = mpsc::channel::<String>();
+        senders.push(_tx.clone());
+        midi::create_in_port_listener(uuid, in_port, &tx, _rx);
     }
 
     socket_handle.join().unwrap();
+
+    for sender in senders {
+        println!("{:?}", sender);
+        let _ = sender.send(String::new());
+    }
 }
 
 fn get_vars() -> Option<(String, String)> {

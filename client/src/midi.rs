@@ -1,9 +1,8 @@
 use std::error::Error;
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{Receiver, Sender, TryRecvError};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-// use midir::os::unix::VirtualOutput;
 use midir::{Ignore, MidiInput, MidiInputPort, MidiOutput, MidiOutputConnection, MidiOutputPort};
 
 use super::utils;
@@ -22,15 +21,16 @@ pub fn create_midi_output() -> MidiOutput {
     MidiOutput::new("MidiOutput").unwrap()
 }
 
-// pub fn create_virtual_port(midi_port: &str, midi_out: MidiOutput) -> MidiOutputConnection {
-//     midi_out.create_virtual(midi_port).unwrap()
-// }
-
 pub fn create_out_port(midi_port: &MidiOutputPort, midi_out: MidiOutput) -> MidiOutputConnection {
     midi_out.connect(&midi_port, "MidiOutput").unwrap()
 }
 
-pub fn create_in_port_listener(uuid: uuid::Uuid, port: MidiInputPort, tx: &Sender<String>) {
+pub fn create_in_port_listener(
+    uuid: uuid::Uuid,
+    port: MidiInputPort,
+    tx: &Sender<String>,
+    rx: Receiver<String>,
+) {
     let port_shared = Arc::new(port);
     let tx_clone1 = tx.clone();
     let tx_clone2 = tx.clone();
@@ -62,7 +62,6 @@ pub fn create_in_port_listener(uuid: uuid::Uuid, port: MidiInputPort, tx: &Sende
             &port_shared,
             "ConnIn",
             move |_stamp, message, _| {
-                // ignore Traktor repeated midi messages
                 cloned_buffer.lock().unwrap().send(&tx_clone2, message);
                 // if message[0] != 158 {
                 //     cloned_buffer.lock().unwrap().add(&tx_clone2, message);
@@ -72,6 +71,12 @@ pub fn create_in_port_listener(uuid: uuid::Uuid, port: MidiInputPort, tx: &Sende
         );
 
         loop {
+            match rx.try_recv() {
+                Ok(_) | Err(TryRecvError::Disconnected) => {
+                    break;
+                }
+                Err(TryRecvError::Empty) => {}
+            }
             utils::sleep(1000);
         }
     });
@@ -90,7 +95,7 @@ pub fn send_midi_message(
 }
 
 fn check_valid_port(port_name: String) -> bool {
-    !(port_name.contains(&crate::VIRTUAL_PORT_NAME) || port_name.contains("Traktor Virtual Output"))
+    !(port_name.contains("Traktor Virtual Output"))
 }
 
 pub fn get_ports(
