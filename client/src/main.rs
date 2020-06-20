@@ -17,15 +17,16 @@ const SERVER_PORT: &str = "6000";
 const MSG_SEPARATOR: char = '|';
 
 fn main() {
+    let uuid = Uuid::new_v4();
     let midi_in = Arc::new(midi::create_midi_input());
     loop {
-        run(Arc::clone(&midi_in));
+        run(uuid, Arc::clone(&midi_in));
         println!("{:☠<52}", "");
         utils::sleep(1000);
     }
 }
 
-fn run(midi_in: Arc<midir::MidiInput>) {
+fn run(uuid: Uuid, midi_in: Arc<midir::MidiInput>) {
     let (server_address, midi_device_num) = match get_vars() {
         Some((server_address, midi_device_num)) => (server_address, midi_device_num),
         None => {
@@ -34,7 +35,6 @@ fn run(midi_in: Arc<midir::MidiInput>) {
         }
     };
 
-    let uuid = Uuid::new_v4();
     print_welcome(uuid, &server_address);
 
     // create Midi in/out
