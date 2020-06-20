@@ -40,7 +40,7 @@ pub fn create_in_port_listener(
         let port_name = midi_in.port_name(&port_shared);
         let buffer = Arc::new(Mutex::new(buffer::Buffer::new(uuid)));
 
-        println!("Monitoring:\t{}", port_name.unwrap());
+        println!("Monitoring\t{}", port_name.unwrap());
         utils::print_thin_separator();
 
         // monitor buffer
@@ -109,11 +109,7 @@ pub fn get_ports(
     let mut count = 0;
     for port in midi_in.ports() {
         if check_valid_port(midi_in.port_name(&port).unwrap()) {
-            println!(
-                "Input port  {}\t{}",
-                count,
-                midi_in.port_name(&port).unwrap()
-            );
+            println!("Input  {}\t{}", count, midi_in.port_name(&port).unwrap());
             in_ports.push(port);
             count += 1;
         }
@@ -127,11 +123,7 @@ pub fn get_ports(
     count = 0;
     for port in midi_out.ports() {
         if check_valid_port(midi_out.port_name(&port).unwrap()) {
-            println!(
-                "Output port {}\t{}",
-                count,
-                midi_out.port_name(&port).unwrap()
-            );
+            println!("Output {}\t{}", count, midi_out.port_name(&port).unwrap());
             out_ports.push(port);
             count += 1;
         }

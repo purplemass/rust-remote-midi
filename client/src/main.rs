@@ -27,15 +27,15 @@ fn main() {
 }
 
 fn run(uuid: Uuid, midi_in: Arc<midir::MidiInput>) {
-    let (server_address, midi_device_num) = match get_vars() {
-        Some((server_address, midi_device_num)) => (server_address, midi_device_num),
+    let (server_address, output_id, input_id) = match get_vars() {
+        Some((server_address, output_id, input_id)) => (server_address, output_id, input_id),
         None => {
             print_error();
             exit(1)
         }
     };
 
-    print_welcome(uuid, &server_address);
+    print_welcome(uuid, &server_address, &output_id, &input_id);
 
     // create Midi in/out
     let midi_out = midi::create_midi_output();
@@ -48,7 +48,7 @@ fn run(uuid: Uuid, midi_in: Arc<midir::MidiInput>) {
     };
 
     // create midi out connection
-    let which: usize = midi_device_num.parse().unwrap();
+    let which: usize = output_id.parse().unwrap();
     if out_ports.len() == 0 {
         panic!("No MIDI devices found")
     }
@@ -57,6 +57,7 @@ fn run(uuid: Uuid, midi_in: Arc<midir::MidiInput>) {
     }
 
     let port = &out_ports[which];
+
     utils::print_thin_separator();
     println!("Output picked >\t{}", midi_out.port_name(&port).unwrap());
 
@@ -96,25 +97,34 @@ fn run(uuid: Uuid, midi_in: Arc<midir::MidiInput>) {
     }
 }
 
-fn get_vars() -> Option<(String, String)> {
+fn get_vars() -> Option<(String, String, String)> {
     let args: Vec<String> = env::args().collect();
     match args.len() {
-        3 => Some((args[1].to_string(), args[2].to_string())),
+        3 => Some((args[1].to_string(), args[2].to_string(), "".to_string())),
+        4 => Some((
+            args[1].to_string(),
+            args[2].to_string(),
+            args[3].to_string(),
+        )),
         _ => None,
     }
 }
 
-fn print_welcome(uuid: Uuid, server_address: &str) {
+fn print_welcome(uuid: Uuid, server_address: &str, output_id: &str, input_id: &str) {
     utils::print_separator();
-    println!("UUID:\t\t{}", uuid);
-    println!("Server:\t\t{}:{}", server_address, SERVER_PORT);
+    println!("UUID\t\t{}", uuid);
+    println!("Server\t\t{}:{}", server_address, SERVER_PORT);
+    println!("Output ID\t{}", output_id);
+    if input_id != "" {
+        println!("Input ID\t{}", input_id);
+    }
     utils::print_separator();
 }
 
 fn print_error() {
     println!("{:#<52}", "");
     println!("Error:\t\tIncorrect/missing arguments");
-    println!("Arguments:\t<SERVER_IP_ADDRESS> <MIDI_DEVICE_ID>");
+    println!("Arguments:\t<SERVER> <OUTPUT_ID> <INPUT_ID>");
     println!("Example:\t./client 127.0.0.1 2");
     println!("{:#<52}", "");
 }
