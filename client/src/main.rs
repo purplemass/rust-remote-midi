@@ -4,6 +4,8 @@ extern crate midir;
 use std::env;
 use std::process::exit;
 use std::sync::mpsc;
+use std::sync::Arc;
+use std::thread;
 
 use uuid::Uuid;
 
@@ -16,6 +18,14 @@ const VIRTUAL_PORT_NAME: &str = "REMOTE-MIDI";
 const MSG_SEPARATOR: char = '|';
 
 fn main() {
+    let midi_in = Arc::new(midi::create_midi_input());
+    loop {
+        run(Arc::clone(&midi_in));
+        utils::sleep(2000);
+    }
+}
+
+fn run(midi_in: Arc<midir::MidiInput>) {
     let (server_address, midi_device_num) = match get_vars() {
         Some((server_address, midi_device_num)) => (server_address, midi_device_num),
         None => {
@@ -28,7 +38,6 @@ fn main() {
     print_welcome(uuid, &server_address);
 
     // create Midi in/out
-    let midi_in = midi::create_midi_input();
     let midi_out = midi::create_midi_output();
     let (in_ports, out_ports) = match midi::get_ports(&midi_in, &midi_out) {
         Ok((in_ports, out_ports)) => (in_ports, out_ports),
@@ -49,6 +58,7 @@ fn main() {
 
     let port = &out_ports[which];
     println!("----> using:\t{}", midi_out.port_name(&port).unwrap());
+
     let midi_out_conn = midi::create_out_port(&port, midi_out);
 
     utils::print_separator();
@@ -64,7 +74,7 @@ fn main() {
         Err(err) => {
             println!("\nFailed to connect");
             println!("Error: {}", err);
-            panic!("No server");
+            thread::spawn(|| {})
         }
     };
 

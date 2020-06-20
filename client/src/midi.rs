@@ -62,7 +62,10 @@ pub fn create_in_port_listener(uuid: uuid::Uuid, port: MidiInputPort, tx: &Sende
             &port_shared,
             "ConnIn",
             move |_stamp, message, _| {
-                cloned_buffer.lock().unwrap().add(&tx_clone2, message);
+                // ignore Traktor repeated midi messages
+                if message[0] != 158 {
+                    cloned_buffer.lock().unwrap().add(&tx_clone2, message);
+                }
             },
             (),
         );
@@ -86,8 +89,7 @@ pub fn send_midi_message(
 }
 
 fn check_valid_port(port_name: String) -> bool {
-    !(port_name.contains(&crate::VIRTUAL_PORT_NAME))
-    // || port_name.contains("Traktor Virtual Input2"))
+    !(port_name.contains(&crate::VIRTUAL_PORT_NAME) || port_name.contains("Traktor Virtual Output"))
 }
 
 pub fn get_ports(
