@@ -19,7 +19,11 @@ pub fn print_log(msg: &str) {
 }
 
 pub fn print_separator() {
-    println!("{:♥<52}", "");
+    println!("{:=<52}", "");
+}
+
+pub fn print_thin_separator() {
+    println!("{:-<52}", "");
 }
 
 fn get_time() -> DateTime<Utc> {

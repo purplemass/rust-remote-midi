@@ -41,6 +41,7 @@ pub fn create_in_port_listener(
         let buffer = Arc::new(Mutex::new(buffer::Buffer::new(uuid)));
 
         println!("Monitoring:\t{}", port_name.unwrap());
+        utils::print_thin_separator();
 
         // monitor buffer
         let cloned_buffer = buffer.clone();

@@ -21,7 +21,7 @@ fn main() {
     let midi_in = Arc::new(midi::create_midi_input());
     loop {
         run(uuid, Arc::clone(&midi_in));
-        println!("{:☠<52}", "");
+        println!("{:#<52}", "");
         utils::sleep(1000);
     }
 }
@@ -57,7 +57,8 @@ fn run(uuid: Uuid, midi_in: Arc<midir::MidiInput>) {
     }
 
     let port = &out_ports[which];
-    println!("----> using:\t{}", midi_out.port_name(&port).unwrap());
+    utils::print_thin_separator();
+    println!("Output picked >\t{}", midi_out.port_name(&port).unwrap());
 
     let midi_out_conn = midi::create_out_port(&port, midi_out);
 
@@ -89,8 +90,8 @@ fn run(uuid: Uuid, midi_in: Arc<midir::MidiInput>) {
 
     socket_handle.join().unwrap();
 
+    // terminate midi listeners
     for sender in senders {
-        println!("{:?}", sender);
         let _ = sender.send(String::new());
     }
 }
@@ -111,9 +112,9 @@ fn print_welcome(uuid: Uuid, server_address: &str) {
 }
 
 fn print_error() {
-    println!("{:☠<52}", "");
+    println!("{:#<52}", "");
     println!("Error:\t\tIncorrect/missing arguments");
     println!("Arguments:\t<SERVER_IP_ADDRESS> <MIDI_DEVICE_ID>");
     println!("Example:\t./client 127.0.0.1 2");
-    println!("{:☠<52}", "");
+    println!("{:#<52}", "");
 }
