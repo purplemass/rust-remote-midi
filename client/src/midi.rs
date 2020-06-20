@@ -63,9 +63,10 @@ pub fn create_in_port_listener(uuid: uuid::Uuid, port: MidiInputPort, tx: &Sende
             "ConnIn",
             move |_stamp, message, _| {
                 // ignore Traktor repeated midi messages
-                if message[0] != 158 {
-                    cloned_buffer.lock().unwrap().add(&tx_clone2, message);
-                }
+                cloned_buffer.lock().unwrap().send(&tx_clone2, message);
+                // if message[0] != 158 {
+                //     cloned_buffer.lock().unwrap().add(&tx_clone2, message);
+                // }
             },
             (),
         );

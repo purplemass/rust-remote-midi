@@ -10,6 +10,7 @@ pub struct Buffer {
     last_call: Instant,
 }
 
+#[allow(unused)]
 impl Buffer {
     pub fn new(uuid: uuid::Uuid) -> Buffer {
         Buffer {
@@ -22,6 +23,11 @@ impl Buffer {
     pub fn reset(&mut self) {
         self.last_call = Instant::now();
         self.queue = Vec::new();
+    }
+
+    pub fn send(&mut self, tx: &Sender<String>, message: &[u8]) {
+        let compound_msg = format!("{}{}{:?}", self.uuid, crate::MSG_SEPARATOR, message);
+        tx.send(compound_msg).unwrap();
     }
 
     pub fn add(&mut self, tx: &Sender<String>, message: &[u8]) {

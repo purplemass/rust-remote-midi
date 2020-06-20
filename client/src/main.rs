@@ -19,10 +19,11 @@ const MSG_SEPARATOR: char = '|';
 
 fn main() {
     let midi_in = Arc::new(midi::create_midi_input());
-    loop {
-        run(Arc::clone(&midi_in));
-        utils::sleep(2000);
-    }
+    run(Arc::clone(&midi_in));
+    // loop {
+    //     run(Arc::clone(&midi_in));
+    //     utils::sleep(2000);
+    // }
 }
 
 fn run(midi_in: Arc<midir::MidiInput>) {
