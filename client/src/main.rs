@@ -47,15 +47,22 @@ fn run(uuid: Uuid, midi_in: Arc<midir::MidiInput>) {
         }
     };
 
-    // create midi out connection
+    // check selected ports
     let which: usize = output_id.parse().unwrap();
     if out_ports.len() == 0 {
         panic!("No MIDI devices found")
     }
     if which > out_ports.len() {
-        panic!("You cannot pick MIDI device [{}]", which)
+        panic!("You cannot pick MIDI output device [{}]", which)
+    }
+    if input_id != "" {
+        let which: usize = input_id.parse().unwrap();
+        if which > in_ports.len() {
+            panic!("You cannot pick MIDI input device [{}]", which)
+        }
     }
 
+    // create midi out connection
     let port = &out_ports[which];
 
     utils::print_thin_separator();
@@ -82,13 +89,17 @@ fn run(uuid: Uuid, midi_in: Arc<midir::MidiInput>) {
 
     utils::print_separator();
 
+    // create input port listeners
     let mut senders: Vec<std::sync::mpsc::Sender<String>> = vec![];
+    let mut n = 0;
     for in_port in in_ports {
-        let (_tx, _rx) = mpsc::channel::<String>();
-        senders.push(_tx.clone());
-        midi::create_in_port_listener(uuid, in_port, &tx, _rx);
+        if input_id == "" || n == input_id.parse().unwrap() {
+            let (_tx, _rx) = mpsc::channel::<String>();
+            senders.push(_tx.clone());
+            midi::create_in_port_listener(uuid, in_port, &tx, _rx);
+        }
+        n += 1;
     }
-
     socket_handle.join().unwrap();
 
     // terminate midi listeners
