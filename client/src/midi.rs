@@ -105,20 +105,34 @@ pub fn get_ports(
     let mut in_ports: Vec<MidiInputPort> = Vec::new();
     let mut out_ports: Vec<MidiOutputPort> = Vec::new();
 
+    let mut count = 0;
     for port in midi_in.ports() {
         if check_valid_port(midi_in.port_name(&port).unwrap()) {
-            println!("Input port:\t{}", midi_in.port_name(&port).unwrap());
+            println!(
+                "Input port  {}\t{}",
+                count,
+                midi_in.port_name(&port).unwrap()
+            );
             in_ports.push(port);
+            count += 1;
         }
     }
     if in_ports.is_empty() {
         println!("No input ports found");
     }
+
     utils::print_separator();
+
+    count = 0;
     for port in midi_out.ports() {
         if check_valid_port(midi_out.port_name(&port).unwrap()) {
-            println!("Output port:\t{}", midi_out.port_name(&port).unwrap());
+            println!(
+                "Output port {}\t{}",
+                count,
+                midi_out.port_name(&port).unwrap()
+            );
             out_ports.push(port);
+            count += 1;
         }
     }
     if out_ports.is_empty() {
